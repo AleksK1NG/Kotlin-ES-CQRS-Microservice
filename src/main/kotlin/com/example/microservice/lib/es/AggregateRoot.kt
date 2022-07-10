@@ -6,25 +6,26 @@ abstract class AggregateRoot(
     open val aggregateId: String,
     open val aggregateType: String
 ) {
-    val changes: MutableList<Any> = mutableListOf()
+    private val changes: MutableList<Any> = mutableListOf()
     var version: BigInteger = BigInteger.ZERO
 
     protected abstract fun whenEvent(event: Any)
 
-    public fun apply(event: Any) {
+    fun apply(event: Any) {
         changes.add(event)
         whenEvent(event)
         version++
     }
 
-    public fun raiseEvent(event: Any) {
+    fun raiseEvent(event: Any) {
         whenEvent(event)
         version++
     }
 
-    public fun load(events: MutableList<Any>) = events.forEach { raiseEvent(it) }
+    fun load(events: MutableList<Any>) = events.forEach { raiseEvent(it) }
 
-    public fun clearChanges() = changes.clear()
+    fun clearChanges() = changes.clear()
+
     override fun toString(): String {
         return "AggregateRoot(aggregateId='$aggregateId', aggregateType='$aggregateType', changes=$changes, version=$version)"
     }
