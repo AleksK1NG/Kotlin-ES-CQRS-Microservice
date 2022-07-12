@@ -9,8 +9,8 @@ import com.example.microservice.events.EmailChangedEvent
 import com.example.microservice.lib.es.AggregateRoot
 import java.math.BigDecimal
 
-class BankAccountAggregate(override val aggregateId: String, override val aggregateType: String = "BankAccount") :
-    AggregateRoot(aggregateId, aggregateType) {
+class BankAccountAggregate(override val aggregateId: String) :
+    AggregateRoot(aggregateId, "BankAccount") {
     var email: String? = null
     var balance: BigDecimal = BigDecimal.ZERO
     var currency: String = "USD"

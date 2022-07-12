@@ -11,5 +11,5 @@ interface AggregateStore {
 
     suspend fun <T : AggregateRoot> save(aggregate: T)
 
-    suspend fun <T : AggregateRoot> load(aggregateId: String, aggregateType: Class<T>)
+    suspend fun <T : AggregateRoot> load(aggregateId: String, aggregateType: Class<T>): T
 }

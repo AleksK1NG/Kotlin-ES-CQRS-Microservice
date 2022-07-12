@@ -1,6 +1,7 @@
 package com.example.microservice.controllers
 
 import com.example.microservice.commands.CreateBankAccountCommand
+import com.example.microservice.commands.DepositBalanceCommand
 import com.example.microservice.domain.AccountAggregate
 import com.example.microservice.domain.BankAccountAggregate
 import com.example.microservice.dto.CreateBankAccountRequest
@@ -110,5 +111,23 @@ class BankAccountController(
         aggregateStore.save(bankAccountAggregate)
         log.info("saved : {}", bankAccountAggregate)
         ResponseEntity.status(201).body(bankAccountAggregate)
+    }
+
+    @PostMapping(path = ["/deposit/{id}"])
+    suspend fun depositBalance(@PathVariable(value = "id", required = true, name = "id") id: String, @RequestBody command: DepositBalanceCommand) = coroutineScope {
+        val bankAccountAggregate = aggregateStore.load(id, BankAccountAggregate::class.java)
+        command.aggregateId = id
+        bankAccountAggregate.depositBalance(command)
+        aggregateStore.save(bankAccountAggregate)
+        log.info("saved : {}", bankAccountAggregate)
+        ResponseEntity.status(200).body(bankAccountAggregate)
+    }
+
+
+    @GetMapping(path = ["/account/{id}"])
+    suspend fun loadBankAccount(@PathVariable(value = "id", required = true, name = "id") id: String): BankAccountAggregate {
+        val bankAccountAggregate = aggregateStore.load(id, BankAccountAggregate::class.java)
+        log.info("(loadBankAccount) bankAccountAggregate: {}", bankAccountAggregate)
+        return bankAccountAggregate
     }
 }

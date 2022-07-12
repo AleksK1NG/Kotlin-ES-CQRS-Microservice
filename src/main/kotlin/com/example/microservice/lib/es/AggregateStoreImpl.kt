@@ -1,15 +1,20 @@
 package com.example.microservice.lib.es
 
 import com.example.microservice.controllers.BankAccountController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
+import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.await
+import org.springframework.r2dbc.core.awaitOne
 import org.springframework.stereotype.Service
 import org.springframework.transaction.reactive.TransactionalOperator
 import org.springframework.transaction.reactive.executeAndAwait
 import java.math.BigInteger
-
+import java.time.LocalDateTime
+import java.util.*
 
 
 @Service
@@ -46,10 +51,17 @@ class AggregateStoreImpl(
 
             saveEvents(events)
 
-            if (aggregate.version.divide(SNAPSHOT_FREQUENCY) == BigInteger.valueOf(3L)) saveSnapshot(aggregate)
+            val res = aggregate.version % SNAPSHOT_FREQUENCY
+            log.info("(VERSION CHECK) res: {}", res)
+
+            if (aggregate.version % SNAPSHOT_FREQUENCY == BigInteger.ZERO) {
+                log.info("(SAVE SNAPSHOT BY VERSION) serialized version: {}", aggregate.version)
+                saveSnapshot(aggregate)
+            }
 
 //            withContext(Dispatchers.Default) { eventBus.publish(events) }
             log.info("(save) saved aggregate: {}", aggregate)
+            aggregate.clearChanges()
         }
     }
 
@@ -73,8 +85,68 @@ class AggregateStoreImpl(
         log.info("(save) handleConcurrency aggregateId: {}", aggregateId)
     }
 
-    override suspend fun <T : AggregateRoot> load(aggregateId: String, aggregateType: Class<T>) {
-        TODO("Not yet implemented")
+    override suspend fun <T : AggregateRoot> load(aggregateId: String, aggregateType: Class<T>): T {
+        val snapshot = loadSnapshot(aggregateId)
+
+        // TODO: rename to getAggregateFromClass
+        val aggregate = getSnapshotFromClass(snapshot, aggregateId, aggregateType)
+
+        val events = loadEvents(aggregateId, aggregate.version)
+
+        events.map { serializer.deserialize(it) }.forEach { aggregate.raiseEvent(it) }
+
+        if (aggregate.version == BigInteger.ZERO) throw java.lang.RuntimeException("load aggregate with zero version")
+
+        return aggregate
+    }
+
+    private fun <T : AggregateRoot> getAggregate(aggregateId: String, aggregateType: Class<T>): T {
+        try {
+            val newInstance = aggregateType.getConstructor(String::class.java).newInstance(aggregateId)
+            log.info("(getAggregate) newInstance: {}", newInstance)
+            return newInstance
+        } catch (ex: Exception) {
+            log.error("create default aggregate ex:", ex)
+            throw RuntimeException("create default aggregate ex:", ex)
+        }
+
+    }
+
+    private suspend fun <T : AggregateRoot> getSnapshotFromClass(
+        snapshot: Snapshot?,
+        aggregateId: String,
+        aggregateType: Class<T>
+    ): T {
+        if (snapshot == null) {
+            val defaultSnapshot =
+                EventSourcingUtils.snapshotFromAggregate(aggregate = getAggregate(aggregateId, aggregateType))
+            return EventSourcingUtils.getAggregateFromSnapshot(defaultSnapshot, aggregateType)
+        }
+        return EventSourcingUtils.getAggregateFromSnapshot(snapshot, aggregateType)
+    }
+
+    private suspend fun loadSnapshot(aggregateId: String): Snapshot? {
+        try {
+            val snapshot = dbClient.sql(LOAD_SNAPSHOT_QUERY)
+                .bind("aggregate_id", aggregateId)
+                .map { row, meta ->
+                    Snapshot(
+                        id = UUID.randomUUID(),
+                        aggregateId = row.get("aggregate_id", String::class.java) ?: "",
+                        aggregateType = row.get("aggregate_type", String::class.java) ?: "",
+                        data = row.get("data", ByteArray::class.java) ?: ByteArray(0),
+                        metaData = row.get("metadata", ByteArray::class.java) ?: ByteArray(0),
+                        version = row.get("version", BigInteger::class.java) ?: BigInteger.ZERO,
+                        timeStamp = row.get("timestamp", LocalDateTime::class.java) ?: LocalDateTime.now(),
+                    )
+                }.awaitOne()
+
+            log.info("(loadSnapshot) loaded snapshot: {}", snapshot)
+            return snapshot
+        } catch (e: EmptyResultDataAccessException) {
+            log.info("(loadSnapshot) loaded snapshot: NOT FOUND: {}", aggregateId)
+            return null
+        }
     }
 
     override suspend fun saveEvents(events: List<Event>) = events.forEach { saveEvent(it) }
@@ -92,7 +164,27 @@ class AggregateStoreImpl(
     }
 
     override suspend fun loadEvents(aggregateId: String, version: BigInteger): MutableList<Event> {
-        TODO("Not yet implemented")
+        return withContext(Dispatchers.IO) {
+            dbClient.sql(LOAD_EVENTS_QUERY)
+                .bind("aggregate_id", aggregateId)
+                .bind("version", version)
+                .map { row, meta ->
+                    val event = Event(
+                        type = row.get("event_type", String::class.java) ?: "",
+                        aggregateType = row.get("aggregate_type", String::class.java) ?: "",
+                        id = "",
+                        version = row.get("version", BigInteger::class.java) ?: BigInteger.ZERO,
+                        aggregateId = row.get("aggregate_id", String::class.java) ?: "",
+                        data = row.get("data", ByteArray::class.java) ?: byteArrayOf(),
+                        metaData = row.get("metadata", ByteArray::class.java) ?: byteArrayOf(),
+                        timeStamp = row.get("timestamp", LocalDateTime::class.java) ?: LocalDateTime.now(),
+                    )
+                    log.info("(loadEvents) type: {}, version: {}", event.type, event.version)
+                    event
+                }
+                .all()
+                .toIterable()
+        }.toMutableList()
     }
 
 
