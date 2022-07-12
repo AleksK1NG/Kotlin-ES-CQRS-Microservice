@@ -5,6 +5,9 @@ import com.example.microservice.commands.ChangeEmailCommand
 import com.example.microservice.commands.CreateBankAccountCommand
 import com.example.microservice.commands.DepositBalanceCommand
 import com.example.microservice.dto.BankAccountResponse
+import com.example.microservice.dto.ChangeEmailRequest
+import com.example.microservice.dto.CreateBankAccountRequest
+import com.example.microservice.dto.DepositBalanceRequest
 import com.example.microservice.queries.BankAccountQueryService
 import com.example.microservice.queries.GetBankAccountByIdQuery
 import kotlinx.coroutines.coroutineScope
@@ -25,8 +28,8 @@ class BankAccountController(
 
 
     @PostMapping(path = ["/account"])
-    suspend fun createBankAccount(@RequestBody command: CreateBankAccountCommand) = coroutineScope {
-        command.aggregateId = UUID.randomUUID().toString()
+    suspend fun createBankAccount(@RequestBody request: CreateBankAccountRequest) = coroutineScope {
+        val command = CreateBankAccountCommand(UUID.randomUUID().toString(), request.email, request.balance, request.currency)
         bankAccountCommandService.handle(command)
         log.info("(createBankAccount) created id: {}", command.aggregateId)
         ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId)
@@ -35,9 +38,9 @@ class BankAccountController(
     @PostMapping(path = ["/deposit/{id}"])
     suspend fun depositBalance(
         @PathVariable(value = "id", required = true, name = "id") id: String,
-        @RequestBody command: DepositBalanceCommand
+        @RequestBody request: DepositBalanceRequest
     ) = coroutineScope {
-        command.aggregateId = id
+        val command = DepositBalanceCommand(id, request.amount)
         bankAccountCommandService.handle(command)
         log.info("(depositBalance) deposited id: {}, amount: {}", command.aggregateId, command.amount)
         ResponseEntity.ok()
@@ -46,9 +49,9 @@ class BankAccountController(
     @PostMapping(path = ["/email/{id}"])
     suspend fun changeEmail(
         @PathVariable(value = "id", required = true, name = "id") id: String,
-        @RequestBody command: ChangeEmailCommand
+        @RequestBody request: ChangeEmailRequest
     ) = coroutineScope {
-        command.aggregateId = id
+        val command = ChangeEmailCommand(id, request.email)
         bankAccountCommandService.handle(command)
         log.info("(changeEmail) email changed id: {}, email: {}", command.aggregateId, command.email)
         ResponseEntity.ok(id)

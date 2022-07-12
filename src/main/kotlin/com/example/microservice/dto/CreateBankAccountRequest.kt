@@ -1,3 +1,5 @@
 package com.example.microservice.dto
 
-data class CreateBankAccountRequest(var id: String?, var email: String)
+import java.math.BigDecimal
+
+data class CreateBankAccountRequest(var email: String, var balance: BigDecimal, var currency: String)
