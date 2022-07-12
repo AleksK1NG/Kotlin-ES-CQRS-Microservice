@@ -3,7 +3,7 @@ package com.example.microservice.events
 import com.example.microservice.lib.es.BaseEvent
 import java.math.BigDecimal
 
-data class BalanceDepositedEvent(override var aggregateId: String, var balance: BigDecimal, var metaData: ByteArray?) :
+data class BalanceDepositedEvent(override var aggregateId: String, var balance: BigDecimal, var metaData: ByteArray) :
     BaseEvent(aggregateId, metaData) {
 
     override fun equals(other: Any?): Boolean {
@@ -14,10 +14,7 @@ data class BalanceDepositedEvent(override var aggregateId: String, var balance: 
 
         if (aggregateId != other.aggregateId) return false
         if (balance != other.balance) return false
-        if (metaData != null) {
-            if (other.metaData == null) return false
-            if (!metaData.contentEquals(other.metaData)) return false
-        } else if (other.metaData != null) return false
+        if (!metaData.contentEquals(other.metaData)) return false
 
         return true
     }
@@ -25,7 +22,9 @@ data class BalanceDepositedEvent(override var aggregateId: String, var balance: 
     override fun hashCode(): Int {
         var result = aggregateId.hashCode()
         result = 31 * result + balance.hashCode()
-        result = 31 * result + (metaData?.contentHashCode() ?: 0)
+        result = 31 * result + metaData.contentHashCode()
         return result
     }
+
+
 }

@@ -8,9 +8,11 @@ import com.example.microservice.lib.es.AggregateRoot
 import com.example.microservice.lib.es.Event
 import com.example.microservice.lib.es.EventSourcingUtils
 import com.example.microservice.lib.es.Serializer
+import org.springframework.stereotype.Component
 
+
+@Component
 class BankAccountEventSerializer : Serializer {
-
     override fun serialize(event: Any, aggregate: AggregateRoot): Event {
         val data = EventSourcingUtils.writeValueAsBytes(event)
 

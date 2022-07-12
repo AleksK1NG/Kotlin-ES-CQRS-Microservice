@@ -1,7 +1,10 @@
 package com.example.microservice.controllers
 
+import com.example.microservice.commands.CreateBankAccountCommand
 import com.example.microservice.domain.AccountAggregate
+import com.example.microservice.domain.BankAccountAggregate
 import com.example.microservice.dto.CreateBankAccountRequest
+import com.example.microservice.lib.es.AggregateStore
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -21,7 +24,11 @@ import java.util.concurrent.ConcurrentHashMap
 
 @RestController
 @RequestMapping(path = ["/api/v1/bank"])
-class BankAccountController(private val dbClient: DatabaseClient, val template: R2dbcEntityTemplate) {
+class BankAccountController(
+    private val dbClient: DatabaseClient,
+    val template: R2dbcEntityTemplate,
+    private val aggregateStore: AggregateStore
+) {
     private val log = LoggerFactory.getLogger(BankAccountController::class.java)
     private val objectMapper = ObjectMapper()
     private val repo: ConcurrentHashMap<String, Any> = ConcurrentHashMap(100)
@@ -92,5 +99,16 @@ class BankAccountController(private val dbClient: DatabaseClient, val template: 
 
         log.info("INSERTED: {}", accountAggregate)
         return@coroutineScope accountAggregate
+    }
+
+
+    @PostMapping(path = ["/account"])
+    suspend fun create(@RequestBody command: CreateBankAccountCommand) = coroutineScope {
+        val bankAccountAggregate = BankAccountAggregate(UUID.randomUUID().toString())
+        command.aggregateId = bankAccountAggregate.aggregateId
+        bankAccountAggregate.createBankAccount(command)
+        aggregateStore.save(bankAccountAggregate)
+        log.info("saved : {}", bankAccountAggregate)
+        ResponseEntity.status(201).body(bankAccountAggregate)
     }
 }

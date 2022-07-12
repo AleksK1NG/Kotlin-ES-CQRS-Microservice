@@ -21,7 +21,6 @@ object EventSourcingUtils {
             aggregateType = aggregate.aggregateType,
             version = aggregate.version,
             data = dataBytes,
-            metaData = null,
             timeStamp = LocalDateTime.now()
         )
     }

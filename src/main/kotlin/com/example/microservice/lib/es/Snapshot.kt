@@ -9,7 +9,7 @@ class Snapshot(
     var aggregateId: String,
     var aggregateType: String,
     var data: ByteArray,
-    var metaData: ByteArray? = null,
+    var metaData: ByteArray = ByteArray(0),
     var version: BigInteger = BigInteger.ZERO,
     var timeStamp: LocalDateTime
 ) {
