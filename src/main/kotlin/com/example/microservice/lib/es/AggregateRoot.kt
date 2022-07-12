@@ -6,7 +6,7 @@ abstract class AggregateRoot(
     open val aggregateId: String,
     open val aggregateType: String
 ) {
-    private val changes: MutableList<Any> = mutableListOf()
+    val changes: MutableList<Any> = mutableListOf()
     var version: BigInteger = BigInteger.ZERO
 
     protected abstract fun whenEvent(event: Any)

@@ -4,19 +4,19 @@ import java.math.BigInteger
 import java.time.LocalDateTime
 import java.util.*
 
-class Event(val type: String) {
+class Event(val type: String, var data: ByteArray) {
     var id: String? = null
-    var version: BigInteger? = null
+    var version: BigInteger = BigInteger.ZERO
     var aggregateId: String? = null
-    var data: ByteArray? = null
+    var aggregateType: String? = null
     var metaData: ByteArray? = null
     var timeStamp: LocalDateTime? = null
 
-    constructor(aggregate: AggregateRoot, eventType: String, data: ByteArray, metaData: ByteArray?): this(eventType) {
+    constructor(aggregate: AggregateRoot, eventType: String, data: ByteArray, metaData: ByteArray?) : this(eventType, data) {
         this.id = UUID.randomUUID().toString()
         this.aggregateId = aggregate.aggregateId
+        this.aggregateType = aggregate.aggregateType
         this.version = aggregate.version
-        this.data = data
         this.metaData = metaData
         this.timeStamp = LocalDateTime.now()
     }
@@ -30,12 +30,13 @@ class Event(val type: String) {
         data: ByteArray,
         metaData: ByteArray? = null,
         timeStamp: LocalDateTime
-    ) : this(type) {
+    ) : this(type, data) {
         this.id = id
         this.version = version
         this.aggregateId = aggregateId
-        this.data = data
+//        this.data = data
         this.metaData = metaData
         this.timeStamp = timeStamp
+        this.aggregateType = aggregateType
     }
 }

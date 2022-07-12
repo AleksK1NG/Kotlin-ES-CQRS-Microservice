@@ -6,35 +6,34 @@ import com.example.microservice.events.BankAccountEvents
 import com.example.microservice.events.EmailChangedEvent
 import com.example.microservice.lib.es.AggregateRoot
 import com.example.microservice.lib.es.Event
+import com.example.microservice.lib.es.EventSourcingUtils
 import com.example.microservice.lib.es.Serializer
-import com.fasterxml.jackson.databind.ObjectMapper
 
 class BankAccountEventSerializer : Serializer {
-    private val objectMapper: ObjectMapper = ObjectMapper()
 
-    override fun serialize(event: Any, aggregate: AggregateRoot, metaData: Any?): Event {
-        val data = objectMapper.writeValueAsBytes(event)
+    override fun serialize(event: Any, aggregate: AggregateRoot): Event {
+        val data = EventSourcingUtils.writeValueAsBytes(event)
 
         return when (event) {
             is BankAccountCreatedEvent -> Event(
                 aggregate,
-                BankAccountEvents.BANK_ACCOUNT_CREATED_V1.toString(),
+                BankAccountEvents.BANK_ACCOUNT_CREATED_V1.name,
                 data,
-                getMetadata(metaData)
+                event.metaData
             )
 
             is BalanceDepositedEvent -> Event(
                 aggregate,
-                BankAccountEvents.BALANCE_DEPOSITED_V1.toString(),
+                BankAccountEvents.BALANCE_DEPOSITED_V1.name,
                 data,
-                getMetadata(metaData)
+                event.metaData
             )
 
             is EmailChangedEvent -> Event(
                 aggregate,
-                BankAccountEvents.EMAIL_CHANGED_V1.toString(),
+                BankAccountEvents.EMAIL_CHANGED_V1.name,
                 data,
-                getMetadata(metaData)
+                event.metaData
             )
 
             else -> throw RuntimeException("unknown event $event")
@@ -43,15 +42,15 @@ class BankAccountEventSerializer : Serializer {
 
     override fun deserialize(event: Event): Any {
         return when (event.type) {
-            BankAccountEvents.BANK_ACCOUNT_CREATED_V1.toString() -> objectMapper.readValue(
+            BankAccountEvents.BANK_ACCOUNT_CREATED_V1.name -> EventSourcingUtils.readValue(
                 event.data, BankAccountCreatedEvent::class.java
             )
 
-            BankAccountEvents.BALANCE_DEPOSITED_V1.toString() -> objectMapper.readValue(
+            BankAccountEvents.BALANCE_DEPOSITED_V1.name -> EventSourcingUtils.readValue(
                 event.data, BalanceDepositedEvent::class.java
             )
 
-            BankAccountEvents.EMAIL_CHANGED_V1.toString() -> objectMapper.readValue(
+            BankAccountEvents.EMAIL_CHANGED_V1.name -> EventSourcingUtils.readValue(
                 event.data, EmailChangedEvent::class.java
             )
 
@@ -61,6 +60,6 @@ class BankAccountEventSerializer : Serializer {
 
     private fun getMetadata(metaData: Any?): ByteArray? {
         if (metaData == null) return null
-        return objectMapper.writeValueAsBytes(metaData)
+        return EventSourcingUtils.writeValueAsBytes(metaData)
     }
 }
