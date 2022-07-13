@@ -8,17 +8,17 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 
-@Configuration
-class KafkaEventBus {
-
-    private val log = LoggerFactory.getLogger(BankAccountController::class.java)
-
-    @Bean
-    fun initEventBus(): EventBus {
-        return object :EventBus {
-            override suspend fun publish(events: List<Event>) {
-                log.info("(EventBus) publish events: {}", events)
-            }
-        }
-    }
-}
+//@Configuration
+//class KafkaEventBus {
+//
+//    private val log = LoggerFactory.getLogger(BankAccountController::class.java)
+//
+//    @Bean
+//    fun initEventBus(): EventBus {
+//        return object :EventBus {
+//            override suspend fun publish(events: Array<Event>) {
+//                log.info("(EventBus) publish events: {}", events)
+//            }
+//        }
+//    }
+//}

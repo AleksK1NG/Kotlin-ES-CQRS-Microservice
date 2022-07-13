@@ -37,7 +37,7 @@ class KafkaTopicConfiguration(
             log.info("(bankAccountEventStoreTopicInitializer) topic: {}", topic)
             topic
         } catch (e: Exception) {
-            log.error(e.message)
+            log.error("bankAccountEventStoreTopicInitializer", e)
             null
         }
     }
