@@ -1,6 +1,5 @@
 package com.example.microservice.configuration
 
-import com.example.microservice.controllers.BankAccountController
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
 import org.slf4j.LoggerFactory
@@ -19,7 +18,7 @@ class KafkaTopicConfiguration(
 ) {
 
     companion object {
-        private val log = LoggerFactory.getLogger(BankAccountController::class.java)
+        private val log = LoggerFactory.getLogger(KafkaTopicConfiguration::class.java)
     }
 
     @Bean

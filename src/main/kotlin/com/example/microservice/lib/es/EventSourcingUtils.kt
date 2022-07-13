@@ -1,11 +1,22 @@
 package com.example.microservice.lib.es
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
 import java.time.LocalDateTime
 import java.util.*
 
 object EventSourcingUtils {
-    private val mapper = jacksonObjectMapper()
+    private val mapper: ObjectMapper = jacksonObjectMapper()
+
+    init {
+        mapper.registerModule(ParameterNamesModule())
+        mapper.registerModule(Jdk8Module())
+        mapper.registerModule(JavaTimeModule())
+    }
+
 
     fun writeValueAsBytes(value: Any): ByteArray = mapper.writeValueAsBytes(value)
 

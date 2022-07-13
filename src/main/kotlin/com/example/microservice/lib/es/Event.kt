@@ -41,4 +41,8 @@ class Event(val type: String, var data: ByteArray, var aggregateId: String, var 
         this.timeStamp = timeStamp
         this.aggregateType = aggregateType
     }
+
+    override fun toString(): String {
+        return "Event(type='$type', data=${data.contentToString()}, aggregateId='$aggregateId', aggregateType='$aggregateType', id=$id, version=$version, metaData=${metaData.contentToString()}, timeStamp=$timeStamp)"
+    }
 }
