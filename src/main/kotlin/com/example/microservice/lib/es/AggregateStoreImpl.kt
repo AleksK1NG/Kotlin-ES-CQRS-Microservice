@@ -72,7 +72,7 @@ class AggregateStoreImpl(
             if (aggregate.version % SNAPSHOT_FREQUENCY == BigInteger.ZERO) saveSnapshot(aggregate)
 
 
-            eventBus.publish(events)
+            eventBus.publish(events.toTypedArray())
 
             log.info("(save) saved aggregate: {}", aggregate)
             aggregate.clearChanges()
@@ -140,7 +140,7 @@ class AggregateStoreImpl(
             log.info("(loadSnapshot) loaded snapshot: {}", snapshot)
             return snapshot
         } catch (e: EmptyResultDataAccessException) {
-            log.info("(loadSnapshot) loaded snapshot: NOT FOUND: {}", aggregateId)
+            log.info("(loadSnapshot) loaded snapshot: NOT FOUND EmptyResultDataAccessException id: {}", aggregateId)
             return null
         }
     }

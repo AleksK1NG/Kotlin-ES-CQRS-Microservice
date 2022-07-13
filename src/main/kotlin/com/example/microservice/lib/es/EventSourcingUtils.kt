@@ -28,4 +28,12 @@ object EventSourcingUtils {
     fun <T : AggregateRoot> getAggregateFromSnapshot(snapshot: Snapshot, valueType: Class<T>): T {
         return mapper.readValue(snapshot.data, valueType)
     }
+
+    fun serializeToJsonBytes(data: Any): ByteArray {
+        return mapper.writeValueAsBytes(data)
+    }
+
+    fun <T> deserializeFromJsonBytes(data: ByteArray, valueType: Class<T>): T {
+        return mapper.readValue(data, valueType)
+    }
 }
