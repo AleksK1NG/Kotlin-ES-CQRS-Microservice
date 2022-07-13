@@ -26,20 +26,21 @@ class AggregateStoreImpl(
 
     companion object {
         private val log = LoggerFactory.getLogger(AggregateStoreImpl::class.java)
-    }
 
-    private val SNAPSHOT_FREQUENCY: BigInteger = BigInteger.valueOf(3)
-    private val HANDLE_CONCURRENCY_QUERY =
-        "SELECT aggregate_id FROM microservices.events WHERE aggregate_id = :aggregate_id ORDER BY version LIMIT 1 FOR UPDATE"
-    private val SAVE_EVENTS_QUERY =
-        "INSERT INTO microservices.events (aggregate_id, aggregate_type, event_type, data, metadata, version, timestamp) values (:aggregate_id, :aggregate_type, :event_type, :data, :metadata, :version, now())"
-    private val LOAD_EVENTS_QUERY =
-        "SELECT event_id ,aggregate_id, aggregate_type, event_type, data, metadata, version, timestamp FROM microservices.events e WHERE e.aggregate_id = :aggregate_id AND e.version > :version ORDER BY e.version ASC"
-    private val SAVE_SNAPSHOT_QUERY =
-        "INSERT INTO microservices.snapshots (aggregate_id, aggregate_type, data, metadata, version, timestamp) VALUES (:aggregate_id, :aggregate_type, :data, :metadata, :version, now()) ON CONFLICT (aggregate_id) DO UPDATE SET data = :data, version = :version, timestamp = now()"
-    private val LOAD_SNAPSHOT_QUERY =
-        "SELECT aggregate_id, aggregate_type, data, metadata, version, timestamp FROM microservices.snapshots s WHERE s.aggregate_id = :aggregate_id"
-    private val EXISTS_QUERY = "SELECT aggregate_id FROM microservices.events WHERE e e.aggregate_id = :aggregate_id"
+        private val SNAPSHOT_FREQUENCY: BigInteger = BigInteger.valueOf(3)
+
+        private const val HANDLE_CONCURRENCY_QUERY =
+            """SELECT aggregate_id FROM microservices.events WHERE aggregate_id = :aggregate_id ORDER BY version LIMIT 1 FOR UPDATE"""
+        private const val SAVE_EVENTS_QUERY =
+            """INSERT INTO microservices.events (aggregate_id, aggregate_type, event_type, data, metadata, version, timestamp) values (:aggregate_id, :aggregate_type, :event_type, :data, :metadata, :version, now())"""
+        private const val LOAD_EVENTS_QUERY =
+            """SELECT event_id ,aggregate_id, aggregate_type, event_type, data, metadata, version, timestamp FROM microservices.events e WHERE e.aggregate_id = :aggregate_id AND e.version > :version ORDER BY e.version ASC"""
+        private const val SAVE_SNAPSHOT_QUERY =
+            """INSERT INTO microservices.snapshots (aggregate_id, aggregate_type, data, metadata, version, timestamp) VALUES (:aggregate_id, :aggregate_type, :data, :metadata, :version, now()) ON CONFLICT (aggregate_id) DO UPDATE SET data = :data, version = :version, timestamp = now()"""
+        private const val LOAD_SNAPSHOT_QUERY =
+            """SELECT aggregate_id, aggregate_type, data, metadata, version, timestamp FROM microservices.snapshots s WHERE s.aggregate_id = :aggregate_id"""
+        private const val EXISTS_QUERY = """SELECT aggregate_id FROM microservices.events WHERE e e.aggregate_id = :aggregate_id"""
+    }
 
 
     override suspend fun <T : AggregateRoot> load(aggregateId: String, aggregateType: Class<T>): T {
