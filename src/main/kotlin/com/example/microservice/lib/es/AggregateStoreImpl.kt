@@ -1,6 +1,5 @@
 package com.example.microservice.lib.es
 
-import com.example.microservice.controllers.BankAccountController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
@@ -23,10 +22,11 @@ class AggregateStoreImpl(
     private val operator: TransactionalOperator,
     private val eventBus: EventBus,
     private val serializer: Serializer
-) :
-    AggregateStore {
+) : AggregateStore {
 
-    private val log = LoggerFactory.getLogger(BankAccountController::class.java)
+    companion object {
+        private val log = LoggerFactory.getLogger(AggregateStoreImpl::class.java)
+    }
 
     private val SNAPSHOT_FREQUENCY: BigInteger = BigInteger.valueOf(3)
     private val HANDLE_CONCURRENCY_QUERY =
@@ -42,6 +42,21 @@ class AggregateStoreImpl(
     private val EXISTS_QUERY = "SELECT aggregate_id FROM microservices.events WHERE e e.aggregate_id = :aggregate_id"
 
 
+    override suspend fun <T : AggregateRoot> load(aggregateId: String, aggregateType: Class<T>): T {
+        val snapshot = loadSnapshot(aggregateId)
+
+        val aggregate = getAggregateFromSnapshotClass(snapshot, aggregateId, aggregateType)
+
+        val events = loadEvents(aggregateId, aggregate.version)
+
+        events.map { serializer.deserialize(it) }.forEach { aggregate.raiseEvent(it) }
+
+        if (aggregate.version == BigInteger.ZERO) throw java.lang.RuntimeException("load aggregate with zero version")
+
+        return aggregate
+    }
+
+
     override suspend fun <T : AggregateRoot> save(aggregate: T): Unit = coroutineScope {
         val events = aggregate.changes.map { serializer.serialize(it, aggregate) }
         log.info("(save) serialized events: {}", events)
@@ -54,12 +69,11 @@ class AggregateStoreImpl(
             val res = aggregate.version % SNAPSHOT_FREQUENCY
             log.info("(VERSION CHECK) res: {}", res)
 
-            if (aggregate.version % SNAPSHOT_FREQUENCY == BigInteger.ZERO) {
-                log.info("(SAVE SNAPSHOT BY VERSION) serialized version: {}", aggregate.version)
-                saveSnapshot(aggregate)
-            }
+            if (aggregate.version % SNAPSHOT_FREQUENCY == BigInteger.ZERO) saveSnapshot(aggregate)
 
-//            withContext(Dispatchers.Default) { eventBus.publish(events) }
+
+            eventBus.publish(events)
+
             log.info("(save) saved aggregate: {}", aggregate)
             aggregate.clearChanges()
         }
@@ -77,7 +91,8 @@ class AggregateStoreImpl(
             .bind("version", aggregate.version)
             .await()
 
-        log.info("(save) saveSnapshot snapshot: {}", snapshot)
+
+        log.info("(save) saveSnapshot snapshot: {}, version: {}", snapshot, aggregate.version)
     }
 
     private suspend fun handleConcurrency(aggregateId: String) {
@@ -85,20 +100,6 @@ class AggregateStoreImpl(
         log.info("(save) handleConcurrency aggregateId: {}", aggregateId)
     }
 
-    override suspend fun <T : AggregateRoot> load(aggregateId: String, aggregateType: Class<T>): T {
-        val snapshot = loadSnapshot(aggregateId)
-
-        // TODO: rename to getAggregateFromClass
-        val aggregate = getSnapshotFromClass(snapshot, aggregateId, aggregateType)
-
-        val events = loadEvents(aggregateId, aggregate.version)
-
-        events.map { serializer.deserialize(it) }.forEach { aggregate.raiseEvent(it) }
-
-        if (aggregate.version == BigInteger.ZERO) throw java.lang.RuntimeException("load aggregate with zero version")
-
-        return aggregate
-    }
 
     private fun <T : AggregateRoot> getAggregate(aggregateId: String, aggregateType: Class<T>): T {
         try {
@@ -112,14 +113,9 @@ class AggregateStoreImpl(
 
     }
 
-    private suspend fun <T : AggregateRoot> getSnapshotFromClass(
-        snapshot: Snapshot?,
-        aggregateId: String,
-        aggregateType: Class<T>
-    ): T {
+    private suspend fun <T : AggregateRoot> getAggregateFromSnapshotClass(snapshot: Snapshot?, aggregateId: String, aggregateType: Class<T>): T {
         if (snapshot == null) {
-            val defaultSnapshot =
-                EventSourcingUtils.snapshotFromAggregate(aggregate = getAggregate(aggregateId, aggregateType))
+            val defaultSnapshot = EventSourcingUtils.snapshotFromAggregate(aggregate = getAggregate(aggregateId, aggregateType))
             return EventSourcingUtils.getAggregateFromSnapshot(defaultSnapshot, aggregateType)
         }
         return EventSourcingUtils.getAggregateFromSnapshot(snapshot, aggregateType)
@@ -168,7 +164,7 @@ class AggregateStoreImpl(
             dbClient.sql(LOAD_EVENTS_QUERY)
                 .bind("aggregate_id", aggregateId)
                 .bind("version", version)
-                .map { row, meta ->
+                .map { row, _ ->
                     val event = Event(
                         type = row.get("event_type", String::class.java) ?: "",
                         aggregateType = row.get("aggregate_type", String::class.java) ?: "",

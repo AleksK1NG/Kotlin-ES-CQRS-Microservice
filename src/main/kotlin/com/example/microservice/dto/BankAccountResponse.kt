@@ -10,7 +10,7 @@ data class BankAccountResponse(
     val currency: String
 ) {
     companion object {
-        public fun of(bankAccountAggregate: BankAccountAggregate): BankAccountResponse {
+        fun of(bankAccountAggregate: BankAccountAggregate): BankAccountResponse {
             return BankAccountResponse(
                 bankAccountAggregate.aggregateId,
                 bankAccountAggregate.email ?: "",

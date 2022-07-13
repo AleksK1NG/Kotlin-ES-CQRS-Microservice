@@ -24,8 +24,9 @@ class BankAccountController(
     private val bankAccountCommandService: BankAccountCommandService,
     private val bankAccountQueryService: BankAccountQueryService,
 ) {
-    private val log = LoggerFactory.getLogger(BankAccountController::class.java)
-
+    companion object {
+        private val log = LoggerFactory.getLogger(BankAccountController::class.java)
+    }
 
     @PostMapping(path = ["/account"])
     suspend fun createBankAccount(@RequestBody request: CreateBankAccountRequest) = coroutineScope {
