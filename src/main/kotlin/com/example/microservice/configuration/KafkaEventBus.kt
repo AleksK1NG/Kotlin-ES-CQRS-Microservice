@@ -1,4 +1,4 @@
-package com.example.microservice.config
+package com.example.microservice.configuration
 
 import com.example.microservice.controllers.BankAccountController
 import com.example.microservice.lib.es.Event
