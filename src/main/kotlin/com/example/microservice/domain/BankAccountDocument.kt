@@ -6,7 +6,7 @@ import java.math.BigDecimal
 
 
 @Document(collection = "bankAccounts")
-open class BankAccountDocument(id: String?, aggregateId: String? = null, email: String? = null, balance: BigDecimal? = null, currency: String? = null) {
+open class BankAccountDocument {
 
     @BsonProperty(value = "_id")
     var id: String? = null
