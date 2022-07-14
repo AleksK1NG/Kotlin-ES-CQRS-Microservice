@@ -59,9 +59,4 @@ class BankAccountEventSerializer : Serializer {
             else -> throw RuntimeException("unknown event $event")
         }
     }
-
-    private fun getMetadata(metaData: Any?): ByteArray? {
-        if (metaData == null) return null
-        return EventSourcingUtils.writeValueAsBytes(metaData)
-    }
 }

@@ -1,14 +1,13 @@
 package com.example.microservice.lib.es
 
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.await
 import org.springframework.r2dbc.core.awaitOne
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Repository
 import org.springframework.transaction.reactive.TransactionalOperator
 import org.springframework.transaction.reactive.executeAndAwait
 import java.math.BigInteger
@@ -16,7 +15,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 
-@Service
+@Repository
 class AggregateStoreImpl(
     private val dbClient: DatabaseClient,
     private val operator: TransactionalOperator,
@@ -48,17 +47,17 @@ class AggregateStoreImpl(
 
         val aggregate = getAggregateFromSnapshotClass(snapshot, aggregateId, aggregateType)
 
-        val events = loadEvents(aggregateId, aggregate.version)
+        loadEvents(aggregateId, aggregate.version)
+            .map { serializer.deserialize(it) }
+            .forEach { aggregate.raiseEvent(it) }
 
-        events.map { serializer.deserialize(it) }.forEach { aggregate.raiseEvent(it) }
-
-        if (aggregate.version == BigInteger.ZERO) throw java.lang.RuntimeException("load aggregate with zero version")
+        if (aggregate.version == BigInteger.ZERO) throw RuntimeException("load aggregate with zero version")
 
         return aggregate
     }
 
 
-    override suspend fun <T : AggregateRoot> save(aggregate: T): Unit = coroutineScope {
+    override suspend fun <T : AggregateRoot> save(aggregate: T) {
         val events = aggregate.changes.map { serializer.serialize(it, aggregate) }
         log.info("(save) serialized events: {}", events)
 
@@ -67,11 +66,7 @@ class AggregateStoreImpl(
 
             saveEvents(events)
 
-            val res = aggregate.version % SNAPSHOT_FREQUENCY
-            log.info("(VERSION CHECK) res: {}", res)
-
             if (aggregate.version % SNAPSHOT_FREQUENCY == BigInteger.ZERO) saveSnapshot(aggregate)
-
 
             eventBus.publish(events.toTypedArray())
 

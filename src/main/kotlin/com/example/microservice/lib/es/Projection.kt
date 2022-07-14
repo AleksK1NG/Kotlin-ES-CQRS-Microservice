@@ -1,5 +1,5 @@
 package com.example.microservice.lib.es
 
 interface Projection {
-    fun whenEvent(event: Event)
+    suspend fun whenEvent(event: Event)
 }
