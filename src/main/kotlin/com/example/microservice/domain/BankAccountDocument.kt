@@ -39,7 +39,7 @@ open class BankAccountDocument(aggregateId: String? = null, email: String? = nul
 //    }
 
     companion object {
-        fun fromBankAccountAggregate(bankAccountAggregate: BankAccountAggregate): BankAccountDocument {
+        fun of(bankAccountAggregate: BankAccountAggregate): BankAccountDocument {
             return BankAccountDocument(
                 bankAccountAggregate.aggregateId,
                 bankAccountAggregate.email,

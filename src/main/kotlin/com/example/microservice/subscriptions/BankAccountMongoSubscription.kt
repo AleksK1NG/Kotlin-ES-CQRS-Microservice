@@ -9,6 +9,10 @@ import com.example.microservice.lib.es.EventSourcingUtils
 import com.example.microservice.lib.es.exceptions.SerializationException
 import com.example.microservice.repository.BankAccountMongoRepository
 import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectIndexed
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.slf4j.LoggerFactory
@@ -55,15 +59,15 @@ class BankAccountMongoSubscription(
     private suspend fun handleMessage(data: ByteArray, ack: Acknowledgment, deserializedEvents: Array<Event>) = withTimeout(handleTimeoutMillis) {
         log.info("Subscription data: {}", String(data))
         try {
-//            flowOf(*deserializedEvents).flowOn(Dispatchers.IO).collectIndexed { index, value -> mongoProjection.whenEvent(value) }
-            deserializedEvents.forEachIndexed { _, event -> mongoProjection.whenEvent(event) }
+            flowOf(*deserializedEvents).flowOn(Dispatchers.IO).collectIndexed { _, value -> mongoProjection.whenEvent(value) }
+//            deserializedEvents.forEachIndexed { _, event -> mongoProjection.whenEvent(event) }
             ack.acknowledge()
             log.info("Subscription <<<commit>>> events: ${deserializedEvents.map { it.aggregateId }}")
         } catch (ex: Exception) {
             log.error("Subscription handleMessage error, starting recreate projection for id: ${deserializedEvents[0].aggregateId}", ex)
             mongoRepository.deleteByAggregateId(deserializedEvents[0].aggregateId)
             val bankAccountAggregate = aggregateStore.load(deserializedEvents[0].aggregateId, BankAccountAggregate::class.java)
-            val bankAccountDocument = BankAccountDocument.fromBankAccountAggregate(bankAccountAggregate)
+            val bankAccountDocument = BankAccountDocument.of(bankAccountAggregate)
             val savedBankAccountDocument = mongoRepository.save(bankAccountDocument)
             ack.acknowledge()
             log.info("Subscription recreated savedBankAccountDocument: $savedBankAccountDocument")

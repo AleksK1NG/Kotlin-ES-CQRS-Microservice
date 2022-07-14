@@ -8,7 +8,6 @@ import com.example.microservice.lib.es.Projection
 import com.example.microservice.lib.es.Serializer
 import com.example.microservice.lib.es.exceptions.UnknownEventTypeException
 import com.example.microservice.repository.BankAccountMongoRepository
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withTimeout
 import org.springframework.stereotype.Service
 import reactor.util.Loggers
@@ -34,14 +33,14 @@ class BankAccountMongoProjection(
             }
 
             is BalanceDepositedEvent -> {
-                val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId).firstOrNull() ?: throw java.lang.RuntimeException("bank account document not found: ${event.aggregateId}")
+                val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId)
                 bankAccountDocument.balance = bankAccountDocument.balance?.add(deserializedEvent.balance)
                 val savedDocument = mongoRepository.save(bankAccountDocument)
                 log.info("(BankAccountMongoProjection) BalanceDepositedEvent savedDocument: $savedDocument")
             }
 
             is EmailChangedEvent -> {
-                val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId).firstOrNull() ?: throw java.lang.RuntimeException("bank account document not found: ${event.aggregateId}")
+                val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId)
                 bankAccountDocument.email = deserializedEvent.email
                 val savedDocument = mongoRepository.save(bankAccountDocument)
                 log.info("(BankAccountMongoProjection) EmailChangedEvent savedDocument: $savedDocument")

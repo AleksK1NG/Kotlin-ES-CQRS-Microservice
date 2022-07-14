@@ -1,6 +1,7 @@
 package com.example.microservice.dto
 
 import com.example.microservice.domain.BankAccountAggregate
+import com.example.microservice.domain.BankAccountDocument
 import java.math.BigDecimal
 
 data class BankAccountResponse(
@@ -16,6 +17,15 @@ data class BankAccountResponse(
                 bankAccountAggregate.email ?: "",
                 bankAccountAggregate.balance,
                 bankAccountAggregate.currency
+            )
+        }
+
+        fun of(bankAccountDocument: BankAccountDocument): BankAccountResponse {
+            return BankAccountResponse(
+                bankAccountDocument.aggregateId ?: "",
+                bankAccountDocument.email ?: "",
+                bankAccountDocument.balance ?: BigDecimal.ZERO,
+                bankAccountDocument.currency ?: ""
             )
         }
     }
