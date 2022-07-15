@@ -15,11 +15,11 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.stereotype.Service
+import reactor.util.Loggers
 import java.util.*
 
 
@@ -32,7 +32,7 @@ class BankAccountMongoSubscription(
 
 
     companion object {
-        private val log = LoggerFactory.getLogger(BankAccountMongoSubscription::class.java)
+        private val log = Loggers.getLogger(BankAccountMongoSubscription::class.java)
         private const val handleTimeoutMillis = 5000L
         private val errorhandler = CoroutineExceptionHandler { _, throwable ->
             run { log.error("(BankAccountMongoSubscription) CoroutineExceptionHandler", throwable) }

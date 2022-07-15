@@ -8,6 +8,7 @@ import com.example.microservice.lib.es.AggregateRoot
 import com.example.microservice.lib.es.Event
 import com.example.microservice.lib.es.EventSourcingUtils
 import com.example.microservice.lib.es.Serializer
+import com.example.microservice.lib.es.exceptions.UnknownEventTypeException
 import org.springframework.stereotype.Component
 
 
@@ -38,7 +39,7 @@ class BankAccountEventSerializer : Serializer {
                 event.metaData
             )
 
-            else -> throw RuntimeException("unknown event $event")
+            else -> throw UnknownEventTypeException("unknown event $event")
         }
     }
 
@@ -56,7 +57,7 @@ class BankAccountEventSerializer : Serializer {
                 event.data, EmailChangedEvent::class.java
             )
 
-            else -> throw RuntimeException("unknown event $event")
+            else -> throw UnknownEventTypeException("unknown event $event")
         }
     }
 }

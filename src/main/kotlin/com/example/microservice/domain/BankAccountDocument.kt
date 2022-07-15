@@ -23,20 +23,12 @@ open class BankAccountDocument(aggregateId: String? = null, email: String? = nul
     @BsonProperty(value = "currency")
     var currency: String? = currency
 
-//    constructor(aggregateId: String, email: String, balance: BigDecimal, currency: String): this() {
-//        this.aggregateId = aggregateId
-//        this.email = email
-//        this.balance = balance
-//        this.currency = currency
-//    }
+    constructor(aggregateId: String, email: String, balance: BigDecimal) : this() {
+        this.aggregateId = aggregateId
+        this.email = email
+        this.balance = balance
+    }
 
-//
-//        constructor(aggregateId: String, email: String, balance: BigDecimal, currency: String) {
-//        this.aggregateId = aggregateId
-//        this.email = email
-//        this.balance = balance
-//        this.currency = currency
-//    }
 
     companion object {
         fun of(bankAccountAggregate: BankAccountAggregate): BankAccountDocument {

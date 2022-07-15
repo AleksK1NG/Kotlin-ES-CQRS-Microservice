@@ -13,8 +13,8 @@ class Event(val type: String, var data: ByteArray, var aggregateId: String, var 
     constructor(aggregate: AggregateRoot, eventType: String, data: ByteArray, metaData: ByteArray) : this(
         eventType,
         data,
-        "",
-        ""
+        aggregate.aggregateId,
+        aggregate.aggregateType
     ) {
         this.id = UUID.randomUUID().toString()
         this.aggregateId = aggregate.aggregateId
@@ -33,7 +33,7 @@ class Event(val type: String, var data: ByteArray, var aggregateId: String, var 
         data: ByteArray,
         metaData: ByteArray,
         timeStamp: LocalDateTime
-    ) : this(type, data, "", "") {
+    ) : this(type, data, aggregateId, aggregateType) {
         this.id = id
         this.version = version
         this.aggregateId = aggregateId
@@ -43,6 +43,6 @@ class Event(val type: String, var data: ByteArray, var aggregateId: String, var 
     }
 
     override fun toString(): String {
-        return "Event(type='$type', data=${data.contentToString()}, aggregateId='$aggregateId', aggregateType='$aggregateType', id=$id, version=$version, metaData=${metaData.contentToString()}, timeStamp=$timeStamp)"
+        return "Event(type='$type', data=${String(data)}, aggregateId='$aggregateId', aggregateType='$aggregateType', id=$id, version=$version, metaData=${String(metaData)}, timeStamp=$timeStamp)"
     }
 }

@@ -2,7 +2,6 @@ package com.example.microservice.lib.es
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.slf4j.LoggerFactory
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.await
@@ -10,6 +9,7 @@ import org.springframework.r2dbc.core.awaitOne
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.reactive.TransactionalOperator
 import org.springframework.transaction.reactive.executeAndAwait
+import reactor.util.Loggers
 import java.math.BigInteger
 import java.time.LocalDateTime
 import java.util.*
@@ -24,7 +24,7 @@ class AggregateStoreImpl(
 ) : AggregateStore {
 
     companion object {
-        private val log = LoggerFactory.getLogger(AggregateStoreImpl::class.java)
+        private val log = Loggers.getLogger(AggregateStoreImpl::class.java)
 
         private val SNAPSHOT_FREQUENCY: BigInteger = BigInteger.valueOf(3)
 

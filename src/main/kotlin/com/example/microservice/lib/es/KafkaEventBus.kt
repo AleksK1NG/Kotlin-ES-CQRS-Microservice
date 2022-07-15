@@ -1,5 +1,6 @@
 package com.example.microservice.lib.es
 
+import com.example.microservice.lib.es.exceptions.PublishEventException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -33,7 +34,7 @@ class KafkaEventBus(
                 log.info("publishing kafka record value >>>>> {}", String(record.value()))
             } catch (ex: Exception) {
                 log.error("(KafkaEventBus) publish get timeout", ex)
-                throw RuntimeException(ex)
+                throw PublishEventException(ex)
             }
         }
     }

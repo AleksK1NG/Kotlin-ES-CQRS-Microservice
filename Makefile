@@ -1,9 +1,5 @@
 .PHONY:
 
-run_microservice:
-	go run cmd/main.go -config=./config/config.yaml
-
-
 # ==============================================================================
 # Docker
 
@@ -47,52 +43,4 @@ clean:
 logs-local:
 	docker logs -f $(FILES)
 
-
-# ==============================================================================
-# Modules support
-
-tidy:
-	go mod tidy
-
-deps-reset:
-	git checkout -- go.mod
-	go mod tidy
-
-deps-upgrade:
-	go get -u -t -d -v ./...
-	go mod tidy
-
-deps-cleancache:
-	go clean -modcache
-
-
-# ==============================================================================
-# Linters https://golangci-lint.run/usage/install/
-
-run-linter:
-	@echo Starting linters
-	golangci-lint run ./...
-
-# ==============================================================================
-# PPROF
-
-pprof_heap:
-	go tool pprof -http :8006 http://localhost:6060/debug/pprof/heap?seconds=10
-
-pprof_cpu:
-	go tool pprof -http :8006 http://localhost:6060/debug/pprof/profile?seconds=10
-
-pprof_allocs:
-	go tool pprof -http :8006 http://localhost:6060/debug/pprof/allocs?seconds=10
-
-
-# ==============================================================================
-# Usage:
-# install local https://github.com/protocolbuffers/protobuf
-# go get -u github.com/golang/protobuf/{proto,protoc-gen-go}
-# go get -u google.golang.org/grpc
-# PROTO use your_file_name.proto
-
-proto_bank_account:
-	@echo Generating es microservice bank_account gRPC proto
-	cd proto/bank_account && protoc --go_out=. --go-grpc_opt=require_unimplemented_servers=false --go-grpc_out=. bank_account.proto
+ank_account && protoc --go_out=. --go-grpc_opt=require_unimplemented_servers=false --go-grpc_out=. bank_account.proto

@@ -25,6 +25,4 @@ data class BalanceDepositedEvent(override var aggregateId: String, var balance: 
         result = 31 * result + metaData.contentHashCode()
         return result
     }
-
-
 }

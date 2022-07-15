@@ -4,15 +4,15 @@ import com.example.microservice.domain.BankAccountAggregate
 import com.example.microservice.lib.es.AggregateStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import reactor.util.Loggers
 
 
 @Service
 class BankAccountCommandServiceImpl(private val aggregateStore: AggregateStore) : BankAccountCommandService {
 
     companion object {
-        private val log = LoggerFactory.getLogger(BankAccountCommandServiceImpl::class.java)
+        private val log = Loggers.getLogger(BankAccountCommandServiceImpl::class.java)
     }
 
     override suspend fun handle(command: CreateBankAccountCommand) = withContext(Dispatchers.IO) {

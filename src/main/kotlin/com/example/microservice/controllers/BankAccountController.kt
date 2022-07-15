@@ -11,10 +11,10 @@ import com.example.microservice.dto.DepositBalanceRequest
 import com.example.microservice.queries.BankAccountQueryService
 import com.example.microservice.queries.GetBankAccountByIdQuery
 import kotlinx.coroutines.coroutineScope
-import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import reactor.util.Loggers
 import java.util.*
 
 
@@ -25,7 +25,7 @@ class BankAccountController(
     private val bankAccountQueryService: BankAccountQueryService,
 ) {
     companion object {
-        private val log = LoggerFactory.getLogger(BankAccountController::class.java)
+        private val log = Loggers.getLogger(BankAccountController::class.java)
     }
 
     @PostMapping(path = ["/account"])
