@@ -10,6 +10,7 @@ import com.example.microservice.dto.CreateBankAccountRequest
 import com.example.microservice.dto.DepositBalanceRequest
 import com.example.microservice.queries.BankAccountQueryService
 import com.example.microservice.queries.GetBankAccountByIdQuery
+import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.coroutineScope
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -20,6 +21,7 @@ import java.util.*
 
 @RestController
 @RequestMapping(path = ["/api/v1/bank"])
+@Tag(name = "Bank Accounts", description = "Bank Accounts REST API Group")
 class BankAccountController(
     private val bankAccountCommandService: BankAccountCommandService,
     private val bankAccountQueryService: BankAccountQueryService,
