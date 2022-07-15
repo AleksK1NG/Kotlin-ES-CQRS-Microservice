@@ -6,7 +6,10 @@ import com.example.microservice.commands.DepositBalanceCommand
 import com.example.microservice.events.BalanceDepositedEvent
 import com.example.microservice.events.BankAccountCreatedEvent
 import com.example.microservice.events.EmailChangedEvent
+import com.example.microservice.exceptions.InvalidAmountException
+import com.example.microservice.exceptions.InvalidEmailException
 import com.example.microservice.lib.es.AggregateRoot
+import com.example.microservice.lib.es.exceptions.UnknownEventTypeException
 import java.math.BigDecimal
 
 class BankAccountAggregate(override val aggregateId: String) :
@@ -32,17 +35,17 @@ class BankAccountAggregate(override val aggregateId: String) :
                 email = event.email
             }
 
-            else -> throw RuntimeException("unknown event type: $event")
+            else -> throw UnknownEventTypeException("unknown event type: $event")
         }
     }
 
 
     fun createBankAccount(command: CreateBankAccountCommand) {
-        if (command.balance < BigDecimal.ZERO) throw RuntimeException("invalid amount")
+        if (command.balance < BigDecimal.ZERO) throw InvalidAmountException("invalid amount: ${command.balance}, aggregateId: ${command.aggregateId}")
 
         this.apply(
             BankAccountCreatedEvent(
-                command.aggregateId ?: "",
+                command.aggregateId,
                 command.email,
                 command.balance,
                 command.currency,
@@ -52,12 +55,12 @@ class BankAccountAggregate(override val aggregateId: String) :
     }
 
     fun depositBalance(command: DepositBalanceCommand) {
-        if (command.amount < BigDecimal.ZERO) throw RuntimeException("invalid amount")
+        if (command.amount < BigDecimal.ZERO) throw InvalidAmountException("invalid amount: $command.amount, aggregateId: ${command.aggregateId}")
         apply(BalanceDepositedEvent(this.aggregateId, command.amount, ByteArray(0)))
     }
 
     fun changeEmail(command: ChangeEmailCommand) {
-        if (command.email.isEmpty()) throw RuntimeException("invalid email")
+        if (command.email.isEmpty()) throw InvalidEmailException("invalid email: ${command.email}, aggregateId: ${command.aggregateId}")
         apply(EmailChangedEvent(aggregateId, command.email, ByteArray(0)))
     }
 }

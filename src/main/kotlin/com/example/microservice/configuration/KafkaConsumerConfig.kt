@@ -39,11 +39,11 @@ class KafkaConsumerConfig(
 
     private fun consumerProps(): Map<String, Any> {
         val consumerProps: MutableMap<String, Any> = HashMap()
-        consumerProps[ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG] = bootstrapServers!!
-        consumerProps[ConsumerConfig.GROUP_ID_CONFIG] = kafkaConfigProperties!!.orderMongoProjectionGroupId
+        consumerProps[ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG] = bootstrapServers
+        consumerProps[ConsumerConfig.GROUP_ID_CONFIG] = kafkaConfigProperties.orderMongoProjectionGroupId
         consumerProps[ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG] = StringDeserializer::class.java
         consumerProps[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = ByteArrayDeserializer::class.java
-        consumerProps[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG] = kafkaConfigProperties!!.enableAutoCommit
+        consumerProps[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG] = kafkaConfigProperties.enableAutoCommit
         return consumerProps
     }
 }

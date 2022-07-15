@@ -6,22 +6,27 @@ import java.math.BigDecimal
 
 
 @Document(collection = "bankAccounts")
-open class BankAccountDocument(aggregateId: String? = null, email: String? = null, balance: BigDecimal? = null, currency: String? = null) {
+open class BankAccountDocument(
+    @BsonProperty(value = "aggregateId") var aggregateId: String? = null,
+    @BsonProperty(value = "email") var email: String? = null,
+    @BsonProperty(value = "balance") var balance: BigDecimal? = null,
+    @BsonProperty(value = "currency") var currency: String? = null
+) {
 
     @BsonProperty(value = "_id")
     var id: String? = null
 
-    @BsonProperty(value = "aggregateId")
-    var aggregateId: String? = aggregateId
+//    @BsonProperty(value = "aggregateId")
+//    var aggregateId: String? = aggregateId
 
-    @BsonProperty(value = "email")
-    var email: String? = email
+//    @BsonProperty(value = "email")
+//    var email: String? = email
 
-    @BsonProperty(value = "balance")
-    var balance: BigDecimal? = balance
+//    @BsonProperty(value = "balance")
+//    var balance: BigDecimal? = balance
 
-    @BsonProperty(value = "currency")
-    var currency: String? = currency
+//    @BsonProperty(value = "currency")
+//    var currency: String? = currency
 
     constructor(aggregateId: String, email: String, balance: BigDecimal) : this() {
         this.aggregateId = aggregateId

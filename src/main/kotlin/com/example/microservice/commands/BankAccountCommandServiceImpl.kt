@@ -18,21 +18,18 @@ class BankAccountCommandServiceImpl(private val aggregateStore: AggregateStore) 
     override suspend fun handle(command: CreateBankAccountCommand) = withContext(Dispatchers.IO) {
         val bankAccount = BankAccountAggregate(command.aggregateId ?: "")
         bankAccount.createBankAccount(command)
-        aggregateStore.save(bankAccount)
-        log.info("(CreateBankAccountCommand) saved bankAccount: {}", bankAccount)
+        aggregateStore.save(bankAccount).run { log.info("(CreateBankAccountCommand) saved bankAccount: {}", bankAccount) }
     }
 
     override suspend fun handle(command: DepositBalanceCommand) = withContext(Dispatchers.IO) {
         val bankAccount = aggregateStore.load(command.aggregateId ?: "", BankAccountAggregate::class.java)
         bankAccount.depositBalance(command)
-        aggregateStore.save(bankAccount)
-        log.info("(DepositBalanceCommand) saved bankAccount: {}", bankAccount)
+        aggregateStore.save(bankAccount).run { log.info("(DepositBalanceCommand) saved bankAccount: {}", bankAccount) }
     }
 
     override suspend fun handle(command: ChangeEmailCommand) = withContext(Dispatchers.IO) {
         val bankAccount = aggregateStore.load(command.aggregateId ?: "", BankAccountAggregate::class.java)
         bankAccount.changeEmail(command)
-        aggregateStore.save(bankAccount)
-        log.info("(ChangeEmailCommand) saved bankAccount: {}", bankAccount)
+        aggregateStore.save(bankAccount).run { log.info("(ChangeEmailCommand) saved bankAccount: {}", bankAccount) }
     }
 }

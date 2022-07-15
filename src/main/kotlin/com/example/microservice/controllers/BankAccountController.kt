@@ -32,8 +32,7 @@ class BankAccountController(
     suspend fun createBankAccount(@RequestBody request: CreateBankAccountRequest) = coroutineScope {
         val command = CreateBankAccountCommand(UUID.randomUUID().toString(), request.email, request.balance, request.currency)
         bankAccountCommandService.handle(command)
-        log.info("(createBankAccount) created id: {}", command.aggregateId)
-        ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId)
+        ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId).also { log.info("(createBankAccount) created id: {}", command.aggregateId) }
     }
 
     @PostMapping(path = ["/deposit/{id}"])
@@ -43,8 +42,7 @@ class BankAccountController(
     ) = coroutineScope {
         val command = DepositBalanceCommand(id, request.amount)
         bankAccountCommandService.handle(command)
-        log.info("(depositBalance) deposited id: {}, amount: {}", command.aggregateId, command.amount)
-        ResponseEntity.ok()
+        ResponseEntity.ok().also { log.info("(depositBalance) deposited id: $command.aggregateId, amount: $command.amount") }
     }
 
     @PostMapping(path = ["/email/{id}"])
@@ -54,15 +52,13 @@ class BankAccountController(
     ) = coroutineScope {
         val command = ChangeEmailCommand(id, request.email)
         bankAccountCommandService.handle(command)
-        log.info("(changeEmail) email changed id: {}, email: {}", command.aggregateId, command.email)
-        ResponseEntity.ok(id)
+        ResponseEntity.ok(id).also { log.info("(changeEmail) email changed id: $command.aggregateId, email: $command.email") }
     }
 
 
     @GetMapping(path = ["/account/{id}"])
     suspend fun getBankAccountById(@PathVariable(value = "id", required = true, name = "id") id: String): ResponseEntity<BankAccountResponse> {
         val response = bankAccountQueryService.handle(GetBankAccountByIdQuery(id, false))
-        log.info("(getBankAccountById) account loaded id: {}", id)
-        return ResponseEntity.status(HttpStatus.OK).body(response)
+        return ResponseEntity.status(HttpStatus.OK).body(response).also { log.info("(getBankAccountById) account loaded id: $id") }
     }
 }

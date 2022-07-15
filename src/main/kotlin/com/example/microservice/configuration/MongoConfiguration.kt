@@ -5,11 +5,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.domain.Sort
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.index.Index
+import reactor.util.Loggers
 import javax.annotation.PostConstruct
 
 
@@ -17,7 +17,7 @@ import javax.annotation.PostConstruct
 class MongoConfiguration(private val mongoTemplate: ReactiveMongoTemplate) {
 
     companion object {
-        private val log = LoggerFactory.getLogger(MongoConfiguration::class.java)
+        private val log = Loggers.getLogger(MongoConfiguration::class.java)
     }
 
 
@@ -28,7 +28,6 @@ class MongoConfiguration(private val mongoTemplate: ReactiveMongoTemplate) {
         val bankAccountsIndexInfo = withContext(Dispatchers.IO) {
             mongoTemplate.indexOps(BankAccountDocument::class.java).indexInfo.toIterable()
         }
-
-        log.info("MongoDB connected, bankAccounts aggregateId index created: {}", bankAccountsIndexInfo)
+        log.info("MongoDB connected, bankAccounts aggregateId index created: $bankAccountsIndexInfo")
     }
 }

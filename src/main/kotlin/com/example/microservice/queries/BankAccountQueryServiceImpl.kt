@@ -29,8 +29,9 @@ class BankAccountQueryServiceImpl(
         }
 
         try {
-            val bankAccountDocument = mongoRepository.findByAggregateId(query.aggregateId).first()
-            log.info("(GetBankAccountByIdQuery) LOADED bankAccountDocument: $bankAccountDocument")
+            val bankAccountDocument = mongoRepository.findByAggregateId(query.aggregateId).first().also {
+                log.info("(GetBankAccountByIdQuery) LOADED bankAccountDocument: $it")
+            }
             return@withContext BankAccountResponse.of(bankAccountDocument).also { log.info("(GetBankAccountByIdQuery) bankAccountDocument: $it") }
         } catch (ex: Exception) {
             val bankAccountAggregate =

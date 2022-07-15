@@ -2,11 +2,11 @@ package com.example.microservice.configuration
 
 import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.kafka.core.KafkaAdmin
+import reactor.util.Loggers
 
 
 @Configuration
@@ -18,7 +18,7 @@ class KafkaTopicConfiguration(
 ) {
 
     companion object {
-        private val log = LoggerFactory.getLogger(KafkaTopicConfiguration::class.java)
+        private val log = Loggers.getLogger(KafkaTopicConfiguration::class.java)
     }
 
     @Bean
@@ -33,7 +33,7 @@ class KafkaTopicConfiguration(
         return try {
             val topic = NewTopic(bankAccountTopicName, 3, 1.toShort())
             kafkaAdmin.createOrModifyTopics(topic)
-            log.info("(bankAccountEventStoreTopicInitializer) topic: {}", topic)
+            log.info("(bankAccountEventStoreTopicInitializer) topic: $topic")
             topic
         } catch (e: Exception) {
             log.error("bankAccountEventStoreTopicInitializer", e)
