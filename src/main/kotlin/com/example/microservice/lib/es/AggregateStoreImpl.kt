@@ -1,5 +1,6 @@
 package com.example.microservice.lib.es
 
+import com.example.microservice.events.es.exceptions.AggregateNotFountException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.dao.EmptyResultDataAccessException
@@ -51,7 +52,7 @@ class AggregateStoreImpl(
             .map { serializer.deserialize(it) }
             .forEach { aggregate.raiseEvent(it) }
 
-        if (aggregate.version == BigInteger.ZERO) throw RuntimeException("load aggregate with zero version")
+        if (aggregate.version == BigInteger.ZERO) throw AggregateNotFountException("aggregate not found id: $aggregateId, type: ${aggregateType.name}")
 
         return aggregate
     }
