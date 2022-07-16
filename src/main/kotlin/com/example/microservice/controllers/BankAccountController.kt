@@ -59,8 +59,11 @@ class BankAccountController(
 
 
     @GetMapping(path = ["/account/{id}"])
-    suspend fun getBankAccountById(@PathVariable(value = "id", required = true, name = "id") id: String): ResponseEntity<BankAccountResponse> {
-        val response = bankAccountQueryService.handle(GetBankAccountByIdQuery(id, false))
+    suspend fun getBankAccountById(
+        @PathVariable(value = "id", required = true, name = "id") id: String,
+        @RequestParam(name = "store", required = false, defaultValue = "false") fromStore: Boolean
+    ): ResponseEntity<BankAccountResponse> {
+        val response = bankAccountQueryService.handle(GetBankAccountByIdQuery(id, fromStore))
         return ResponseEntity.status(HttpStatus.OK).body(response).also { log.info("(getBankAccountById) account loaded id: $id") }
     }
 }

@@ -3,6 +3,7 @@ package com.example.microservice.lib.es
 import com.example.microservice.events.es.exceptions.AggregateNotFountException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.springframework.cloud.sleuth.Tracer
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.r2dbc.core.await
@@ -21,7 +22,8 @@ class AggregateStoreImpl(
     private val dbClient: DatabaseClient,
     private val operator: TransactionalOperator,
     private val eventBus: EventBus,
-    private val serializer: Serializer
+    private val serializer: Serializer,
+    private val tracer: Tracer
 ) : AggregateStore {
 
     companion object {
@@ -44,81 +46,123 @@ class AggregateStoreImpl(
 
 
     override suspend fun <T : AggregateRoot> load(aggregateId: String, aggregateType: Class<T>): T {
-        val snapshot = loadSnapshot(aggregateId)
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.load")
 
-        val aggregate = getAggregateFromSnapshotClass(snapshot, aggregateId, aggregateType)
+        try {
+            val snapshot = loadSnapshot(aggregateId)
 
-        loadEvents(aggregateId, aggregate.version)
-            .map { serializer.deserialize(it) }
-            .forEach { aggregate.raiseEvent(it) }
+            val aggregate = getAggregateFromSnapshotClass(snapshot, aggregateId, aggregateType)
 
-        if (aggregate.version == BigInteger.ZERO) throw AggregateNotFountException("aggregate not found id: $aggregateId, type: ${aggregateType.name}")
+            loadEvents(aggregateId, aggregate.version)
+                .map { serializer.deserialize(it) }
+                .forEach { aggregate.raiseEvent(it) }
 
-        return aggregate
+            if (aggregate.version == BigInteger.ZERO) throw AggregateNotFountException("aggregate not found id: $aggregateId, type: ${aggregateType.name}")
+
+            return aggregate
+        } finally {
+            span.end()
+        }
     }
 
 
     override suspend fun <T : AggregateRoot> save(aggregate: T) {
-        val events = aggregate.changes.map { serializer.serialize(it, aggregate) }
-        log.info("(save) serialized events: $events")
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.save")
 
-        operator.executeAndAwait {
-            if (aggregate.version > BigInteger.ONE) handleConcurrency(aggregate.aggregateId)
+        try {
+            val events = aggregate.changes.map { serializer.serialize(it, aggregate) }
+            log.info("(save) serialized events: $events")
+            span.tag("events", events.toString())
 
-            saveEvents(events)
+            operator.executeAndAwait {
+                if (aggregate.version > BigInteger.ONE) handleConcurrency(aggregate.aggregateId)
 
-            if (aggregate.version % SNAPSHOT_FREQUENCY == BigInteger.ZERO) saveSnapshot(aggregate)
+                saveEvents(events)
 
-            eventBus.publish(events.toTypedArray())
+                if (aggregate.version % SNAPSHOT_FREQUENCY == BigInteger.ZERO) saveSnapshot(aggregate)
 
-            log.info("(save) saved aggregate: $aggregate")
-            aggregate.clearChanges()
+                eventBus.publish(events.toTypedArray())
+
+                log.info("(save) saved aggregate: $aggregate")
+                aggregate.clearChanges()
+            }
+
+        } finally {
+            span.end()
         }
     }
 
     private suspend fun <T : AggregateRoot> saveSnapshot(aggregate: T) {
-        aggregate.clearChanges()
-        val snapshot = EventSourcingUtils.snapshotFromAggregate(aggregate)
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.saveSnapshot")
 
-        dbClient.sql(SAVE_SNAPSHOT_QUERY)
-            .bind("aggregate_id", aggregate.aggregateId)
-            .bind("aggregate_type", aggregate.aggregateType)
-            .bind("data", snapshot.data)
-            .bind("metadata", snapshot.metaData)
-            .bind("version", aggregate.version)
-            .await()
+        try {
+            aggregate.clearChanges()
+            val snapshot = EventSourcingUtils.snapshotFromAggregate(aggregate)
 
+            dbClient.sql(SAVE_SNAPSHOT_QUERY)
+                .bind("aggregate_id", aggregate.aggregateId)
+                .bind("aggregate_type", aggregate.aggregateType)
+                .bind("data", snapshot.data)
+                .bind("metadata", snapshot.metaData)
+                .bind("version", aggregate.version)
+                .await()
 
-        log.info("(save) saveSnapshot snapshot: $snapshot, version: ${aggregate.version}")
+            log.info("(save) saveSnapshot snapshot: $snapshot, version: ${aggregate.version}")
+            span.tag("saved snapshot", snapshot.toString())
+        } finally {
+            span.end()
+        }
     }
 
     private suspend fun handleConcurrency(aggregateId: String) {
-        dbClient.sql(HANDLE_CONCURRENCY_QUERY).bind("aggregate_id", aggregateId).await()
-        log.info("(save) handleConcurrency aggregateId: $aggregateId")
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.handleConcurrency")
+
+        try {
+            dbClient.sql(HANDLE_CONCURRENCY_QUERY).bind("aggregate_id", aggregateId).await()
+            log.info("(save) handleConcurrency aggregateId: $aggregateId")
+        } finally {
+            span.end()
+        }
     }
 
 
     private fun <T : AggregateRoot> getAggregate(aggregateId: String, aggregateType: Class<T>): T {
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.getAggregate")
+
         try {
             val newInstance = aggregateType.getConstructor(String::class.java).newInstance(aggregateId)
             log.info("(getAggregate) newInstance: $newInstance")
-            return newInstance
+            return newInstance.also { span.tag("newInstance", it.toString()) }
         } catch (ex: Exception) {
+            span.error(ex)
             log.error("create default aggregate ex:", ex)
             throw RuntimeException("create default aggregate ex:", ex)
+        } finally {
+            span.end()
         }
 
     }
 
     private suspend fun <T : AggregateRoot> getAggregateFromSnapshotClass(snapshot: Snapshot?, aggregateId: String, aggregateType: Class<T>): T {
-        if (snapshot == null) {
-            val defaultSnapshot = EventSourcingUtils.snapshotFromAggregate(aggregate = getAggregate(aggregateId, aggregateType))
-            return EventSourcingUtils.getAggregateFromSnapshot(defaultSnapshot, aggregateType)
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.loadSnapshot")
+
+        try {
+            if (snapshot == null) {
+                val defaultSnapshot = EventSourcingUtils.snapshotFromAggregate(aggregate = getAggregate(aggregateId, aggregateType))
+                return EventSourcingUtils.getAggregateFromSnapshot(defaultSnapshot, aggregateType).also {
+                    span.tag("defaultSnapshot", it.toString())
+                }
+            }
+
+            return EventSourcingUtils.getAggregateFromSnapshot(snapshot, aggregateType).also { span.tag("AggregateRoot", it.toString()) }
+        } finally {
+            span.end()
         }
-        return EventSourcingUtils.getAggregateFromSnapshot(snapshot, aggregateType)
     }
 
     private suspend fun loadSnapshot(aggregateId: String): Snapshot? {
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.loadSnapshot")
+
         try {
             val snapshot = dbClient.sql(LOAD_SNAPSHOT_QUERY)
                 .bind("aggregate_id", aggregateId)
@@ -135,48 +179,75 @@ class AggregateStoreImpl(
                 }.awaitOne()
 
             log.info("(loadSnapshot) loaded snapshot: $snapshot")
+            span.tag("snapshot", snapshot.toString())
             return snapshot
         } catch (e: EmptyResultDataAccessException) {
+            span.error(e)
             log.info("(loadSnapshot) loaded snapshot: NOT FOUND EmptyResultDataAccessException id: $aggregateId")
             return null
+        } finally {
+            span.end()
         }
     }
 
-    override suspend fun saveEvents(events: List<Event>) = events.forEach { saveEvent(it) }
+    override suspend fun saveEvents(events: List<Event>) {
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.saveEvents")
+
+        try {
+            span.tag("events", events.toString())
+            return events.forEach { saveEvent(it) }
+        } finally {
+            span.end()
+        }
+    }
 
     private suspend fun saveEvent(event: Event) {
-        log.info("saving event: {}", event)
-        return dbClient.sql(SAVE_EVENTS_QUERY)
-            .bind("aggregate_id", event.aggregateId)
-            .bind("aggregate_type", event.aggregateType)
-            .bind("event_type", event.type)
-            .bind("version", event.version)
-            .bind("data", event.data)
-            .bind("metadata", event.metaData)
-            .await()
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.saveEvent")
+
+        try {
+            log.info("saving event: $event")
+            span.tag("event", event.toString())
+            return dbClient.sql(SAVE_EVENTS_QUERY)
+                .bind("aggregate_id", event.aggregateId)
+                .bind("aggregate_type", event.aggregateType)
+                .bind("event_type", event.type)
+                .bind("version", event.version)
+                .bind("data", event.data)
+                .bind("metadata", event.metaData)
+                .await()
+        } finally {
+            span.end()
+        }
     }
 
     override suspend fun loadEvents(aggregateId: String, version: BigInteger): MutableList<Event> {
         return withContext(Dispatchers.IO) {
-            dbClient.sql(LOAD_EVENTS_QUERY)
-                .bind("aggregate_id", aggregateId)
-                .bind("version", version)
-                .map { row, _ ->
-                    val event = Event(
-                        type = row.get("event_type", String::class.java) ?: "",
-                        aggregateType = row.get("aggregate_type", String::class.java) ?: "",
-                        id = "",
-                        version = row.get("version", BigInteger::class.java) ?: BigInteger.ZERO,
-                        aggregateId = row.get("aggregate_id", String::class.java) ?: "",
-                        data = row.get("data", ByteArray::class.java) ?: byteArrayOf(),
-                        metaData = row.get("metadata", ByteArray::class.java) ?: byteArrayOf(),
-                        timeStamp = row.get("timestamp", LocalDateTime::class.java) ?: LocalDateTime.now(),
-                    )
-                    log.info("(loadEvents) type: ${event.type}, version: ${event.version}")
-                    event
-                }
-                .all()
-                .toIterable()
+            val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.loadEvents")
+            span.tag("aggregateId", aggregateId).tag("version", version.toString())
+
+            try {
+                dbClient.sql(LOAD_EVENTS_QUERY)
+                    .bind("aggregate_id", aggregateId)
+                    .bind("version", version)
+                    .map { row, _ ->
+                        val event = Event(
+                            type = row.get("event_type", String::class.java) ?: "",
+                            aggregateType = row.get("aggregate_type", String::class.java) ?: "",
+                            id = "",
+                            version = row.get("version", BigInteger::class.java) ?: BigInteger.ZERO,
+                            aggregateId = row.get("aggregate_id", String::class.java) ?: "",
+                            data = row.get("data", ByteArray::class.java) ?: byteArrayOf(),
+                            metaData = row.get("metadata", ByteArray::class.java) ?: byteArrayOf(),
+                            timeStamp = row.get("timestamp", LocalDateTime::class.java) ?: LocalDateTime.now(),
+                        )
+                        log.info("(loadEvents) type: ${event.type}, version: ${event.version}")
+                        event
+                    }
+                    .all()
+                    .toIterable()
+            } finally {
+                span.end()
+            }
         }.toMutableList()
     }
 

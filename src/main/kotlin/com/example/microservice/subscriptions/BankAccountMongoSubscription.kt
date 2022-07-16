@@ -8,13 +8,12 @@ import com.example.microservice.lib.es.Event
 import com.example.microservice.lib.es.EventSourcingUtils
 import com.example.microservice.lib.es.exceptions.SerializationException
 import com.example.microservice.repository.BankAccountMongoRepository
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectIndexed
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
+import org.springframework.cloud.sleuth.Tracer
+import org.springframework.cloud.sleuth.instrument.kotlin.asContextElement
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.Acknowledgment
 import org.springframework.messaging.handler.annotation.Payload
@@ -27,7 +26,8 @@ import java.util.*
 class BankAccountMongoSubscription(
     private val mongoRepository: BankAccountMongoRepository,
     private val mongoProjection: BankAccountMongoProjection,
-    private val aggregateStore: AggregateStore
+    private val aggregateStore: AggregateStore,
+    private val tracer: Tracer
 ) {
 
 
@@ -44,33 +44,49 @@ class BankAccountMongoSubscription(
         groupId = "\${microservice.kafka.groupId}",
         concurrency = "\${microservice.kafka.default-concurrency}"
     )
-    fun bankAccountMongoSubscription(@Payload data: ByteArray, ack: Acknowledgment) = runBlocking(errorhandler) {
+    fun bankAccountMongoSubscription(@Payload data: ByteArray, ack: Acknowledgment): Any = runBlocking(errorhandler + tracer.asContextElement()) {
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("BankAccountMongoSubscription.subscribe")
+
         try {
             val deserializedEvents = EventSourcingUtils.deserializeFromJsonBytes(data, Array<Event>::class.java)
-            handleMessage(data, ack, deserializedEvents)
+            handleMessage(data, ack, deserializedEvents).run { span.tag("deserializedEvents", deserializedEvents.contentDeepToString()) }
         } catch (ex: SerializationException) {
+            span.error(ex)
             log.error("Subscription SerializationException <<<commit>>>", ex)
             ack.acknowledge()
         } catch (ex: Exception) {
+            span.error(ex)
             log.error("Subscription SerializationException", ex)
+        } finally {
+            span.end()
         }
     }
 
-    private suspend fun handleMessage(data: ByteArray, ack: Acknowledgment, deserializedEvents: Array<Event>) = withTimeout(handleTimeoutMillis) {
-        log.info("Subscription data: {}", String(data))
-        try {
-            flowOf(*deserializedEvents).flowOn(Dispatchers.IO).collectIndexed { _, value -> mongoProjection.whenEvent(value) }
+    private suspend fun handleMessage(data: ByteArray, ack: Acknowledgment, deserializedEvents: Array<Event>) = withContext(tracer.asContextElement()) {
+        withTimeout(handleTimeoutMillis) {
+            val span = tracer.nextSpan(tracer.currentSpan()).start().name("BankAccountMongoSubscription.handleMessage")
+            log.info("Subscription data: ${String(data)}")
+            span.tag("Subscription data", String(data))
+
+            try {
+                flowOf(*deserializedEvents).flowOn(Dispatchers.IO).collectIndexed { _, value -> mongoProjection.whenEvent(value) }
 //            deserializedEvents.forEachIndexed { _, event -> mongoProjection.whenEvent(event) }
-            ack.acknowledge()
-            log.info("Subscription <<<commit>>> events: ${deserializedEvents.map { it.aggregateId }}")
-        } catch (ex: Exception) {
-            log.error("Subscription handleMessage error, starting recreate projection for id: ${deserializedEvents[0].aggregateId}", ex)
-            mongoRepository.deleteByAggregateId(deserializedEvents[0].aggregateId)
-            val bankAccountAggregate = aggregateStore.load(deserializedEvents[0].aggregateId, BankAccountAggregate::class.java)
-            val bankAccountDocument = BankAccountDocument.of(bankAccountAggregate)
-            val savedBankAccountDocument = mongoRepository.save(bankAccountDocument)
-            ack.acknowledge()
-            log.info("Subscription recreated savedBankAccountDocument: $savedBankAccountDocument")
+                ack.acknowledge()
+                span.tag("deserializedEvents", deserializedEvents.map { it.aggregateId }.toString())
+                log.info("Subscription <<<commit>>> events: ${deserializedEvents.map { it.aggregateId }}")
+            } catch (ex: Exception) {
+                span.error(ex)
+                log.error("Subscription handleMessage error, starting recreate projection for id: ${deserializedEvents[0].aggregateId}", ex)
+                mongoRepository.deleteByAggregateId(deserializedEvents[0].aggregateId)
+                val bankAccountAggregate = aggregateStore.load(deserializedEvents[0].aggregateId, BankAccountAggregate::class.java)
+                val bankAccountDocument = BankAccountDocument.of(bankAccountAggregate)
+                val savedBankAccountDocument = mongoRepository.save(bankAccountDocument)
+                ack.acknowledge()
+                span.tag("savedBankAccountDocument", savedBankAccountDocument.toString())
+                log.info("Subscription recreated savedBankAccountDocument: $savedBankAccountDocument")
+            } finally {
+                span.end()
+            }
         }
     }
 }
