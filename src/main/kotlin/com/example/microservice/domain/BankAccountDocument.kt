@@ -16,18 +16,6 @@ open class BankAccountDocument(
     @BsonProperty(value = "_id")
     var id: String? = null
 
-//    @BsonProperty(value = "aggregateId")
-//    var aggregateId: String? = aggregateId
-
-//    @BsonProperty(value = "email")
-//    var email: String? = email
-
-//    @BsonProperty(value = "balance")
-//    var balance: BigDecimal? = balance
-
-//    @BsonProperty(value = "currency")
-//    var currency: String? = currency
-
     constructor(aggregateId: String, email: String, balance: BigDecimal) : this() {
         this.aggregateId = aggregateId
         this.email = email
