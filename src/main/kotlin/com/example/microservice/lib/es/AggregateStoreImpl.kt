@@ -60,7 +60,7 @@ class AggregateStoreImpl(
 
     override suspend fun <T : AggregateRoot> save(aggregate: T) {
         val events = aggregate.changes.map { serializer.serialize(it, aggregate) }
-        log.info("(save) serialized events: {}", events)
+        log.info("(save) serialized events: $events")
 
         operator.executeAndAwait {
             if (aggregate.version > BigInteger.ONE) handleConcurrency(aggregate.aggregateId)
@@ -71,7 +71,7 @@ class AggregateStoreImpl(
 
             eventBus.publish(events.toTypedArray())
 
-            log.info("(save) saved aggregate: {}", aggregate)
+            log.info("(save) saved aggregate: $aggregate")
             aggregate.clearChanges()
         }
     }
@@ -89,19 +89,19 @@ class AggregateStoreImpl(
             .await()
 
 
-        log.info("(save) saveSnapshot snapshot: {}, version: {}", snapshot, aggregate.version)
+        log.info("(save) saveSnapshot snapshot: $snapshot, version: ${aggregate.version}")
     }
 
     private suspend fun handleConcurrency(aggregateId: String) {
         dbClient.sql(HANDLE_CONCURRENCY_QUERY).bind("aggregate_id", aggregateId).await()
-        log.info("(save) handleConcurrency aggregateId: {}", aggregateId)
+        log.info("(save) handleConcurrency aggregateId: $aggregateId")
     }
 
 
     private fun <T : AggregateRoot> getAggregate(aggregateId: String, aggregateType: Class<T>): T {
         try {
             val newInstance = aggregateType.getConstructor(String::class.java).newInstance(aggregateId)
-            log.info("(getAggregate) newInstance: {}", newInstance)
+            log.info("(getAggregate) newInstance: $newInstance")
             return newInstance
         } catch (ex: Exception) {
             log.error("create default aggregate ex:", ex)
@@ -134,10 +134,10 @@ class AggregateStoreImpl(
                     )
                 }.awaitOne()
 
-            log.info("(loadSnapshot) loaded snapshot: {}", snapshot)
+            log.info("(loadSnapshot) loaded snapshot: $snapshot")
             return snapshot
         } catch (e: EmptyResultDataAccessException) {
-            log.info("(loadSnapshot) loaded snapshot: NOT FOUND EmptyResultDataAccessException id: {}", aggregateId)
+            log.info("(loadSnapshot) loaded snapshot: NOT FOUND EmptyResultDataAccessException id: $aggregateId")
             return null
         }
     }
@@ -172,7 +172,7 @@ class AggregateStoreImpl(
                         metaData = row.get("metadata", ByteArray::class.java) ?: byteArrayOf(),
                         timeStamp = row.get("timestamp", LocalDateTime::class.java) ?: LocalDateTime.now(),
                     )
-                    log.info("(loadEvents) type: {}, version: {}", event.type, event.version)
+                    log.info("(loadEvents) type: ${event.type}, version: ${event.version}")
                     event
                 }
                 .all()

@@ -12,14 +12,12 @@ import com.example.microservice.lib.es.AggregateRoot
 import com.example.microservice.lib.es.exceptions.UnknownEventTypeException
 import java.math.BigDecimal
 
-class BankAccountAggregate(override val aggregateId: String) :
-    AggregateRoot(aggregateId, "BankAccount") {
+class BankAccountAggregate(override val aggregateId: String) : AggregateRoot(aggregateId, type) {
     var email: String? = null
     var balance: BigDecimal = BigDecimal.ZERO
     var currency: String = "USD"
 
     override fun whenEvent(event: Any) {
-        println(event)
         return when (event) {
             is BankAccountCreatedEvent -> {
                 email = event.email
@@ -63,4 +61,9 @@ class BankAccountAggregate(override val aggregateId: String) :
         if (command.email.isEmpty()) throw InvalidEmailException("invalid email: ${command.email}, aggregateId: ${command.aggregateId}")
         apply(EmailChangedEvent(aggregateId, command.email, ByteArray(0)))
     }
+
+    companion object {
+        const val type = "BankAccount"
+    }
+
 }
