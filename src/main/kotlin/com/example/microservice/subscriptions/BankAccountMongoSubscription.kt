@@ -7,7 +7,7 @@ import com.example.microservice.lib.es.AggregateStore
 import com.example.microservice.lib.es.Event
 import com.example.microservice.lib.es.EventSourcingUtils
 import com.example.microservice.lib.es.exceptions.SerializationException
-import com.example.microservice.repository.BankAccountMongoRepository
+import com.example.microservice.repository.BankAccountCoroutineMongoRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectIndexed
 import kotlinx.coroutines.flow.flowOf
@@ -24,7 +24,7 @@ import java.util.*
 
 @Service
 class BankAccountMongoSubscription(
-    private val mongoRepository: BankAccountMongoRepository,
+    private val mongoRepository: BankAccountCoroutineMongoRepository,
     private val mongoProjection: BankAccountMongoProjection,
     private val aggregateStore: AggregateStore,
     private val tracer: Tracer
@@ -80,7 +80,7 @@ class BankAccountMongoSubscription(
                 mongoRepository.deleteByAggregateId(deserializedEvents[0].aggregateId)
                 val bankAccountAggregate = aggregateStore.load(deserializedEvents[0].aggregateId, BankAccountAggregate::class.java)
                 val bankAccountDocument = BankAccountDocument.of(bankAccountAggregate)
-                val savedBankAccountDocument = mongoRepository.save(bankAccountDocument)
+                val savedBankAccountDocument = mongoRepository.insert(bankAccountDocument)
                 ack.acknowledge()
                 span.tag("savedBankAccountDocument", savedBankAccountDocument.toString())
                 log.info("Subscription recreated savedBankAccountDocument: $savedBankAccountDocument")

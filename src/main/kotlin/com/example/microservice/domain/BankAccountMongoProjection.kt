@@ -7,8 +7,7 @@ import com.example.microservice.lib.es.Event
 import com.example.microservice.lib.es.Projection
 import com.example.microservice.lib.es.Serializer
 import com.example.microservice.lib.es.exceptions.UnknownEventTypeException
-import com.example.microservice.repository.BankAccountMongoRepository
-import kotlinx.coroutines.flow.first
+import com.example.microservice.repository.BankAccountCoroutineMongoRepository
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.springframework.cloud.sleuth.Tracer
@@ -19,7 +18,7 @@ import reactor.util.Loggers
 
 @Service
 class BankAccountMongoProjection(
-    private val mongoRepository: BankAccountMongoRepository,
+    private val mongoRepository: BankAccountCoroutineMongoRepository,
     private val serializer: Serializer,
     private val tracer: Tracer
 ) : Projection {
@@ -36,23 +35,23 @@ class BankAccountMongoProjection(
                 when (val deserializedEvent = serializer.deserialize(event)) {
                     is BankAccountCreatedEvent -> {
                         val bankAccountDocument = BankAccountDocument(event.aggregateId, deserializedEvent.email, deserializedEvent.balance, deserializedEvent.currency)
-                        val savedDocument = mongoRepository.save(bankAccountDocument)
+                        val savedDocument = mongoRepository.insert(bankAccountDocument)
                         span.tag("savedDocument", savedDocument.toString())
                         log.info("(BankAccountMongoProjection) BankAccountCreatedEvent savedDocument: $savedDocument")
                     }
 
                     is BalanceDepositedEvent -> {
-                        val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId).first()
+                        val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId)
                         bankAccountDocument.balance = bankAccountDocument.balance?.add(deserializedEvent.balance)
-                        val savedDocument = mongoRepository.save(bankAccountDocument)
+                        val savedDocument = mongoRepository.updateByAggregateId(bankAccountDocument)
                         span.tag("savedDocument", savedDocument.toString())
                         log.info("(BankAccountMongoProjection) BalanceDepositedEvent savedDocument: $savedDocument")
                     }
 
                     is EmailChangedEvent -> {
-                        val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId).first()
+                        val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId)
                         bankAccountDocument.email = deserializedEvent.email
-                        val savedDocument = mongoRepository.save(bankAccountDocument)
+                        val savedDocument = mongoRepository.updateByAggregateId(bankAccountDocument)
                         span.tag("savedDocument", savedDocument.toString())
                         log.info("(BankAccountMongoProjection) EmailChangedEvent savedDocument: $savedDocument")
                     }
