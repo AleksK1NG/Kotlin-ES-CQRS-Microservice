@@ -13,6 +13,8 @@ local:
 	@echo Clearing prometheus data
 	rm -rf ./prometheus
 	@echo Starting local docker compose
+	@echo Clearing mongo data
+	rm -rf ./mongodb_data_container
 	docker-compose -f docker-compose.local.yaml up -d --build
 
 develop:
@@ -43,4 +45,3 @@ clean:
 logs-local:
 	docker logs -f $(FILES)
 
-ank_account && protoc --go_out=. --go-grpc_opt=require_unimplemented_servers=false --go-grpc_out=. bank_account.proto
