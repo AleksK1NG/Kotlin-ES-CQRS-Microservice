@@ -4,9 +4,8 @@ import com.example.microservice.domain.BankAccountAggregate
 import com.example.microservice.domain.BankAccountDocument
 import com.example.microservice.dto.BankAccountResponse
 import com.example.microservice.lib.es.AggregateStore
-import com.example.microservice.repository.BankAccountMongoRepository
+import com.example.microservice.repository.BankAccountCoroutineMongoRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.springframework.cloud.sleuth.Tracer
 import org.springframework.cloud.sleuth.instrument.kotlin.asContextElement
@@ -17,7 +16,7 @@ import reactor.util.Loggers
 @Service
 class BankAccountQueryServiceImpl(
     private val aggregateStore: AggregateStore,
-    private val mongoRepository: BankAccountMongoRepository,
+    private val mongoRepository: BankAccountCoroutineMongoRepository,
     private val tracer: Tracer
 ) : BankAccountQueryService {
     companion object {
@@ -36,7 +35,7 @@ class BankAccountQueryServiceImpl(
                 }
             }
 
-            val bankAccountDocument = mongoRepository.findByAggregateId(query.aggregateId).first().also {
+            val bankAccountDocument = mongoRepository.findByAggregateId(query.aggregateId).also {
                 span.tag("bankAccountDocument", it.toString())
                 log.info("(GetBankAccountByIdQuery) LOADED bankAccountDocument: $it")
             }
@@ -50,7 +49,7 @@ class BankAccountQueryServiceImpl(
                 span.tag("bankAccountAggregate", it.toString())
             }
 
-            val savedBankAccountDocument = mongoRepository.save(BankAccountDocument.of(bankAccountAggregate)).also {
+            val savedBankAccountDocument = mongoRepository.insert(BankAccountDocument.of(bankAccountAggregate)).also {
                 log.info("(GetBankAccountByIdQuery) savedBankAccountDocument: $it")
                 span.tag("savedBankAccountDocument", it.toString())
             }
