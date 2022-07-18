@@ -16,6 +16,6 @@ class Snapshot(
 
 
     override fun toString(): String {
-        return "Snapshot(id=$id, aggregateId='$aggregateId', aggregateType='$aggregateType', data=${data.contentToString()}, metaData=${metaData?.contentToString()}, version=$version, timeStamp=$timeStamp)"
+        return "Snapshot(id=$id, aggregateId='$aggregateId', aggregateType='$aggregateType', data=${data.contentToString()}, metaData=${metaData.contentToString()}, version=$version, timeStamp=$timeStamp)"
     }
 }
