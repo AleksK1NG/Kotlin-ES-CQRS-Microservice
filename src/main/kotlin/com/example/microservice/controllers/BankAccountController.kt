@@ -35,7 +35,7 @@ class BankAccountController(
     suspend fun createBankAccount(@Valid @RequestBody request: CreateBankAccountRequest) = coroutineScope {
         val command = CreateBankAccountCommand(UUID.randomUUID().toString(), request.email, request.balance, request.currency)
         bankAccountCommandService.handle(command)
-        ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId).also { log.info("(createBankAccount) created id: {}", command.aggregateId) }
+        ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId).also { log.info("(createBankAccount) created id: $command.aggregateId") }
     }
 
     @PostMapping(path = ["/deposit/{id}"])
