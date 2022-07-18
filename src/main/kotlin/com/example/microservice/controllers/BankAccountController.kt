@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import reactor.util.Loggers
 import java.util.*
+import javax.validation.Valid
 
 
 @RestController
@@ -31,7 +32,7 @@ class BankAccountController(
     }
 
     @PostMapping(path = ["/account"])
-    suspend fun createBankAccount(@RequestBody request: CreateBankAccountRequest) = coroutineScope {
+    suspend fun createBankAccount(@Valid @RequestBody request: CreateBankAccountRequest) = coroutineScope {
         val command = CreateBankAccountCommand(UUID.randomUUID().toString(), request.email, request.balance, request.currency)
         bankAccountCommandService.handle(command)
         ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId).also { log.info("(createBankAccount) created id: {}", command.aggregateId) }
@@ -40,7 +41,7 @@ class BankAccountController(
     @PostMapping(path = ["/deposit/{id}"])
     suspend fun depositBalance(
         @PathVariable(value = "id", required = true, name = "id") id: String,
-        @RequestBody request: DepositBalanceRequest
+        @Valid @RequestBody request: DepositBalanceRequest
     ) = coroutineScope {
         val command = DepositBalanceCommand(id, request.amount)
         bankAccountCommandService.handle(command)
@@ -50,7 +51,7 @@ class BankAccountController(
     @PostMapping(path = ["/email/{id}"])
     suspend fun changeEmail(
         @PathVariable(value = "id", required = true, name = "id") id: String,
-        @RequestBody request: ChangeEmailRequest
+        @Valid @RequestBody request: ChangeEmailRequest
     ) = coroutineScope {
         val command = ChangeEmailCommand(id, request.email)
         bankAccountCommandService.handle(command)
