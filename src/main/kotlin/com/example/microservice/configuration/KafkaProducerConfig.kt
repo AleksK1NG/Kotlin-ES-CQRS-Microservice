@@ -14,7 +14,7 @@ import org.springframework.kafka.core.ProducerFactory
 
 @Configuration
 class KafkaProducerConfig(
-    @Value(value = "\${kafka.bootstrapServers:localhost:9093}")
+    @Value(value = "\${spring.kafka.bootstrap-servers:localhost:9093}")
     private val bootstrapServers: String,
     private val kafkaConfigProperties: KafkaConfigProperties
 ) {

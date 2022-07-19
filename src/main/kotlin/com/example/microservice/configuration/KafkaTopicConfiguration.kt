@@ -11,7 +11,7 @@ import reactor.util.Loggers
 
 @Configuration
 class KafkaTopicConfiguration(
-    @Value(value = "\${kafka.bootstrapServers:localhost:9093}")
+    @Value(value = "\${spring.kafka.bootstrap-servers:localhost:9093}")
     private val bootstrapServers: String,
     @Value(value = "\${microservice.kafka.topics.bank-account-event-store:bank-account-event-store}")
     private val bankAccountTopicName: String
