@@ -18,6 +18,7 @@ local:
 	docker-compose -f docker-compose.local.yaml up -d --build
 
 develop:
+	mvn clean package -Dmaven.test.skip
 	@echo Clearing kafka data
 	rm -rf ./es-data01
 	@echo Clearing kafka data
