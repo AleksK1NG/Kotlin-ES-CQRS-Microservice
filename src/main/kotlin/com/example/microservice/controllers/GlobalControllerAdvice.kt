@@ -42,6 +42,13 @@ class GlobalControllerAdvice {
             .also { log.error("(GlobalControllerAdvice) AggregateNotFountException NOT_FOUND", ex) }
     }
 
+    @ExceptionHandler(value = [IllegalArgumentException::class])
+    fun handleIllegalArgumentException(ex: IllegalArgumentException, request: ServerHttpRequest): ResponseEntity<ErrorHttpResponse> {
+        val errorHttpResponse = ErrorHttpResponse(HttpStatus.BAD_REQUEST.value(), ex.message ?: "", LocalDateTime.now().toString())
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(errorHttpResponse)
+            .also { log.error("(GlobalControllerAdvice) AggregateNotFountException NOT_FOUND", ex) }
+    }
+
     @ExceptionHandler(value = [SerializationException::class, InvalidEmailException::class, InvalidAmountException::class])
     fun handleBadRequestException(ex: RuntimeException, request: ServerHttpRequest): ResponseEntity<ErrorHttpResponse> {
         val errorHttpResponse = ErrorHttpResponse(HttpStatus.BAD_REQUEST.value(), ex.message ?: "", LocalDateTime.now().toString())

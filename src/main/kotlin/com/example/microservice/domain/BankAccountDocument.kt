@@ -10,7 +10,7 @@ open class BankAccountDocument(
     @BsonProperty(value = "aggregateId") var aggregateId: String? = null,
     @BsonProperty(value = "email") var email: String? = null,
     @BsonProperty(value = "balance") var balance: BigDecimal? = null,
-    @BsonProperty(value = "currency") var currency: String? = null
+    @BsonProperty(value = "currency") var currency: Currency? = null
 ) {
 
     @BsonProperty(value = "_id")

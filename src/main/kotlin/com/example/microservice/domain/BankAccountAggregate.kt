@@ -15,7 +15,7 @@ import java.math.BigDecimal
 class BankAccountAggregate(override val aggregateId: String) : AggregateRoot(aggregateId, type) {
     var email: String? = null
     var balance: BigDecimal = BigDecimal.ZERO
-    var currency: String = "USD"
+    var currency: Currency = Currency.USD
 
     override fun whenEvent(event: Any) {
         return when (event) {

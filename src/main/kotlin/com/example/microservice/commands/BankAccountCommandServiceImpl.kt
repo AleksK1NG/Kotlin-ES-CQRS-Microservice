@@ -61,7 +61,7 @@ class BankAccountCommandServiceImpl(
             val span = tracer.nextSpan(tracer.currentSpan()).start().name("BankAccountCommandServiceImpl.changeEmail")
 
             try {
-                val bankAccount = aggregateStore.load(command.aggregateId ?: "", BankAccountAggregate::class.java)
+                val bankAccount = aggregateStore.load(command.aggregateId, BankAccountAggregate::class.java)
                 bankAccount.changeEmail(command)
                 aggregateStore.save(bankAccount).run {
                     span.tag("bankAccount", bankAccount.toString())
