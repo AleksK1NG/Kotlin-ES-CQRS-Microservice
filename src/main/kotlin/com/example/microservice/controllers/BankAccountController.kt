@@ -13,6 +13,7 @@ import com.example.microservice.queries.GetBankAccountByIdQuery
 import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.coroutineScope
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import reactor.util.Loggers
@@ -31,14 +32,14 @@ class BankAccountController(
         private val log = Loggers.getLogger(BankAccountController::class.java)
     }
 
-    @PostMapping(path = ["/account"])
+    @PostMapping(path = ["/account"], consumes = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun createBankAccount(@Valid @RequestBody request: CreateBankAccountRequest) = coroutineScope {
         val command = CreateBankAccountCommand(UUID.randomUUID().toString(), request.email, request.balance, request.currency)
         bankAccountCommandService.handle(command)
         ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId).also { log.info("(createBankAccount) created id: $command.aggregateId") }
     }
 
-    @PostMapping(path = ["/deposit/{id}"])
+    @PostMapping(path = ["/deposit/{id}"], consumes = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun depositBalance(
         @PathVariable(value = "id", required = true, name = "id") id: String,
         @Valid @RequestBody request: DepositBalanceRequest
@@ -48,23 +49,23 @@ class BankAccountController(
         ResponseEntity.ok().also { log.info("(depositBalance) deposited id: $command.aggregateId, amount: $command.amount") }
     }
 
-    @PostMapping(path = ["/email/{id}"])
+    @PostMapping(path = ["/email/{id}"], consumes = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun changeEmail(
         @PathVariable(value = "id", required = true, name = "id") id: String,
         @Valid @RequestBody request: ChangeEmailRequest
     ) = coroutineScope {
         val command = ChangeEmailCommand(id, request.email)
         bankAccountCommandService.handle(command)
-        ResponseEntity.ok(id).also { log.info("(changeEmail) email changed id: $command.aggregateId, email: $command.email") }
+        ResponseEntity.ok().also { log.info("(changeEmail) email changed id: $command.aggregateId, email: $command.email") }
     }
 
 
-    @GetMapping(path = ["/account/{id}"])
+    @GetMapping(path = ["/account/{id}"], produces = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun getBankAccountById(
         @PathVariable(value = "id", required = true, name = "id") id: String,
         @RequestParam(name = "store", required = false, defaultValue = "false") fromStore: Boolean
-    ): ResponseEntity<BankAccountResponse> {
-        val response = bankAccountQueryService.handle(GetBankAccountByIdQuery(id, fromStore))
-        return ResponseEntity.status(HttpStatus.OK).body(response).also { log.info("(getBankAccountById) account loaded id: $id") }
+    ): ResponseEntity<BankAccountResponse> = coroutineScope {
+        bankAccountQueryService.handle(GetBankAccountByIdQuery(id, fromStore))
+            .let { ResponseEntity.ok(it).also { log.info("(getBankAccountById) account loaded id: $id") } }
     }
 }

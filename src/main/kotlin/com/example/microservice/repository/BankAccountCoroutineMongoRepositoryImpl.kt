@@ -2,6 +2,7 @@ package com.example.microservice.repository
 
 import com.example.microservice.domain.BankAccountDocument
 import com.mongodb.client.result.DeleteResult
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.withContext
 import org.springframework.beans.factory.annotation.Qualifier
@@ -58,23 +59,23 @@ class BankAccountCoroutineMongoRepositoryImpl(
         }
     }
 
-    suspend fun updateByAggregateIdWithTransaction(bankAccountDocument: BankAccountDocument): BankAccountDocument? = withContext(tracer.asContextElement()) {
-        val span = tracer.nextSpan(tracer.currentSpan()).start().name("MongoRepository.updateByAggregateIdWithTransaction")
+    suspend fun findAndUpdateByAggregateIdWithTransaction(bankAccountDocument: BankAccountDocument): BankAccountDocument? = coroutineScope {
+        withContext(tracer.asContextElement()) {
+            val span = tracer.nextSpan(tracer.currentSpan()).start().name("MongoRepository.findAndUpdateByAggregateIdWithTransaction")
 
-        try {
-            transactionalOperator.executeAndAwait {
-                val foundDocument = mongoOperations.findOne(getByAggregateIdQuery(bankAccountDocument.aggregateId), BankAccountDocument::class.java).awaitSingle()
-                bankAccountDocument.id = foundDocument.id
+            try {
+                transactionalOperator.executeAndAwait {
+                    val foundDocument = mongoOperations.findOne(getByAggregateIdQuery(bankAccountDocument.aggregateId), BankAccountDocument::class.java).awaitSingle()
+                    bankAccountDocument.id = foundDocument.id
 
-                val savedBankAccountDocument = mongoOperations.save(bankAccountDocument).awaitSingle().also {
-                    span.tag("savedBankAccountDocument", it.toString())
-                    log.info("savedBankAccountDocument: $it")
+                    mongoOperations.save(bankAccountDocument).awaitSingle().also {
+                        span.tag("savedBankAccountDocument", it.toString())
+                        log.info("savedBankAccountDocument: $it")
+                    }
                 }
-                savedBankAccountDocument
+            } finally {
+                span.end()
             }
-
-        } finally {
-            span.end()
         }
     }
 
@@ -83,11 +84,10 @@ class BankAccountCoroutineMongoRepositoryImpl(
 
         try {
             val query = Query.query(Criteria.where("aggregateId").`is`(aggregateId))
-            val deleteResult = mongoOperations.remove(query).awaitSingle().also {
+            mongoOperations.remove(query).awaitSingle().also {
                 span.tag("deleteResult", it.toString())
                 log.info("deleteResult: $it")
             }
-            deleteResult
         } finally {
             span.end()
         }

@@ -91,7 +91,7 @@ class AggregateStoreImpl(
                 .bind("version", aggregate.version)
                 .await()
 
-            log.info("(save) saveSnapshot snapshot: $snapshot, version: ${aggregate.version}")
+            log.info("(save) saved snapshot: $snapshot, version: ${aggregate.version}")
             span.tag("saved snapshot", snapshot.toString())
         } finally {
             span.end()
@@ -158,7 +158,7 @@ class AggregateStoreImpl(
                 }
         } catch (e: EmptyResultDataAccessException) {
             span.error(e)
-            log.info("(loadSnapshot) loaded snapshot: NOT FOUND EmptyResultDataAccessException id: $aggregateId")
+            log.info("(loadSnapshot) snapshot not found EmptyResultDataAccessException, creating default for id: $aggregateId")
             null
         } finally {
             span.end()
