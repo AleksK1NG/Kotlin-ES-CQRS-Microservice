@@ -31,32 +31,21 @@ class BankAccountQueryServiceImpl(
 
             try {
                 if (query.fromStore) {
-                    return@withContext BankAccountResponse.of(aggregateStore.load(query.aggregateId, BankAccountAggregate::class.java)).also {
-                        log.info("(GetBankAccountByIdQuery) fromStore bankAccountResponse: $it")
-                        span.tag("BankAccountAggregate", it.toString())
-                    }
+                    return@withContext aggregateStore.load(query.aggregateId, BankAccountAggregate::class.java)
+                        .let { BankAccountResponse.of(it) }
+                        .also {
+                            log.info("(GetBankAccountByIdQuery) fromStore bankAccountResponse: $it")
+                            span.tag("BankAccountAggregate", it.toString())
+                        }
                 }
-
-                val bankAccountDocument = mongoRepository.findByAggregateId(query.aggregateId).also {
-                    span.tag("bankAccountDocument", it.toString())
-                    log.info("(GetBankAccountByIdQuery) LOADED bankAccountDocument: $it")
-                }
-
-                return@withContext BankAccountResponse.of(bankAccountDocument).also { log.info("(GetBankAccountByIdQuery) bankAccountDocument: $it") }
+                return@withContext mongoRepository.findByAggregateId(query.aggregateId)
+                    .let { BankAccountResponse.of(it) }
+                    .also { log.info("(GetBankAccountByIdQuery) bankAccountDocument: $it") }
             } catch (ex: Exception) {
                 span.error(ex)
-
-                val bankAccountAggregate = aggregateStore.load(query.aggregateId, BankAccountAggregate::class.java).also {
-                    log.info("(GetBankAccountByIdQuery) bankAccountAggregate: $it")
-                    span.tag("bankAccountAggregate", it.toString())
-                }
-
-                val savedBankAccountDocument = mongoRepository.insert(BankAccountDocument.of(bankAccountAggregate)).also {
-                    log.info("(GetBankAccountByIdQuery) savedBankAccountDocument: $it")
-                    span.tag("savedBankAccountDocument", it.toString())
-                }
-
-                BankAccountResponse.of(savedBankAccountDocument)
+                aggregateStore.load(query.aggregateId, BankAccountAggregate::class.java)
+                    .let { BankAccountResponse.of(mongoRepository.insert(BankAccountDocument.of(it))) }
+                    .also { log.info("(GetBankAccountByIdQuery) savedBankAccountDocument: $it") }
             } finally {
                 span.end()
             }
