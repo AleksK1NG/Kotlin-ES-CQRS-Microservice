@@ -1,13 +1,16 @@
 package com.example.microservice.repository
 
 import com.example.microservice.domain.BankAccountDocument
+import com.example.microservice.dto.PaginationResponse
 import com.mongodb.client.result.DeleteResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.withContext
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.cloud.sleuth.Tracer
 import org.springframework.cloud.sleuth.instrument.kotlin.asContextElement
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.mongodb.core.ReactiveMongoOperations
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.query.Criteria
@@ -104,6 +107,28 @@ class BankAccountCoroutineMongoRepositoryImpl(
             }
         } finally {
             span.end()
+        }
+    }
+
+    override suspend fun findAll(pageRequest: PageRequest): PaginationResponse<BankAccountDocument> = coroutineScope {
+        withContext(Dispatchers.IO + tracer.asContextElement()) {
+            val span = tracer.nextSpan(tracer.currentSpan()).start().name("MongoRepository.findAll")
+
+            try {
+                val totalCount = mongoOperations.count(Query(), BankAccountDocument::class.java).awaitSingle()
+                mongoOperations.find(Query().with(pageRequest), BankAccountDocument::class.java).collectList().awaitSingle()
+                    .let {
+                        val totalPages = (totalCount.toInt() / pageRequest.pageSize)
+                        val hasMore = pageRequest.pageNumber < totalPages
+                        PaginationResponse(pageRequest.pageNumber, pageRequest.pageSize, totalCount, totalPages, hasMore, it)
+                    }
+                    .also {
+                        log.info("findAll paginationResponse: $it")
+                        span.tag("paginationResponse", it.toString())
+                    }
+            } finally {
+                span.end()
+            }
         }
     }
 }

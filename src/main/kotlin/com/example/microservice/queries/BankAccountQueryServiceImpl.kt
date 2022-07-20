@@ -3,6 +3,7 @@ package com.example.microservice.queries
 import com.example.microservice.domain.BankAccountAggregate
 import com.example.microservice.domain.BankAccountDocument
 import com.example.microservice.dto.BankAccountResponse
+import com.example.microservice.dto.PaginationResponse
 import com.example.microservice.lib.es.AggregateStore
 import com.example.microservice.repository.BankAccountCoroutineMongoRepository
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +28,6 @@ class BankAccountQueryServiceImpl(
     override suspend fun handle(query: GetBankAccountByIdQuery): BankAccountResponse = coroutineScope {
         withContext(Dispatchers.IO + tracer.asContextElement()) {
             val span = tracer.nextSpan(tracer.currentSpan()).start().name("GetBankAccountByIdQuery.handle")
-            span.tag("query span started", "cool =D")
 
             try {
                 if (query.fromStore) {
@@ -60,6 +60,19 @@ class BankAccountQueryServiceImpl(
             } finally {
                 span.end()
             }
+        }
+    }
+
+    override suspend fun handle(query: GetAllQuery): PaginationResponse<BankAccountDocument> = withContext(Dispatchers.IO + tracer.asContextElement()) {
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("GetAllQuery.handle")
+
+        try {
+            mongoRepository.findAll(query.pageRequest).also {
+                log.info("(GetAllQuery) bankAccountDocuments: $it")
+                span.tag("bankAccountDocuments", it.toString())
+            }
+        } finally {
+            span.end()
         }
     }
 }

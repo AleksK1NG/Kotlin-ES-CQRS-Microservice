@@ -4,15 +4,15 @@ import com.example.microservice.commands.BankAccountCommandService
 import com.example.microservice.commands.ChangeEmailCommand
 import com.example.microservice.commands.CreateBankAccountCommand
 import com.example.microservice.commands.DepositBalanceCommand
+import com.example.microservice.domain.BankAccountDocument
 import com.example.microservice.domain.Currency
-import com.example.microservice.dto.BankAccountResponse
-import com.example.microservice.dto.ChangeEmailRequest
-import com.example.microservice.dto.CreateBankAccountRequest
-import com.example.microservice.dto.DepositBalanceRequest
+import com.example.microservice.dto.*
 import com.example.microservice.queries.BankAccountQueryService
+import com.example.microservice.queries.GetAllQuery
 import com.example.microservice.queries.GetBankAccountByIdQuery
 import io.swagger.v3.oas.annotations.tags.Tag
 import kotlinx.coroutines.coroutineScope
+import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -67,6 +67,15 @@ class BankAccountController(
         @RequestParam(name = "store", required = false, defaultValue = "false") fromStore: Boolean
     ): ResponseEntity<BankAccountResponse> = coroutineScope {
         bankAccountQueryService.handle(GetBankAccountByIdQuery(id, fromStore))
-            .let { ResponseEntity.ok(it).also { log.info("(getBankAccountById) account loaded id: $id") } }
+            .let { ResponseEntity.ok(it) }.also { log.info("(getBankAccountById) account loaded id: $id") }
+    }
+
+    @GetMapping(path = ["/account"], produces = [MediaType.APPLICATION_JSON_VALUE])
+    suspend fun getAllWithPagination(
+        @RequestParam(name = "page", required = false, defaultValue = "0") page: Int,
+        @RequestParam(name = "size", required = false, defaultValue = "10") size: Int
+    ): ResponseEntity<PaginationResponse<BankAccountDocument>> = coroutineScope {
+        bankAccountQueryService.handle(GetAllQuery(PageRequest.of(page, size)))
+            .let { ResponseEntity.ok(it) }.also { log.info("(getAllWithPagination) accounts: ${it.body}") }
     }
 }
