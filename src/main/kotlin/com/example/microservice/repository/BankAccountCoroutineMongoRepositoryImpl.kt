@@ -4,6 +4,7 @@ import com.example.microservice.domain.BankAccountDocument
 import com.example.microservice.dto.PaginationResponse
 import com.mongodb.client.result.DeleteResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactor.awaitSingle
 import kotlinx.coroutines.withContext
@@ -115,17 +116,9 @@ class BankAccountCoroutineMongoRepositoryImpl(
             val span = tracer.nextSpan(tracer.currentSpan()).start().name("MongoRepository.findAll")
 
             try {
-                val totalCount = mongoOperations.count(Query(), BankAccountDocument::class.java).awaitSingle()
-                mongoOperations.find(Query().with(pageRequest), BankAccountDocument::class.java).collectList().awaitSingle()
-                    .let {
-                        val totalPages = (totalCount.toInt() / pageRequest.pageSize)
-                        val hasMore = pageRequest.pageNumber < totalPages
-                        PaginationResponse(pageRequest.pageNumber, pageRequest.pageSize, totalCount, totalPages, hasMore, it)
-                    }
-                    .also {
-                        log.info("findAll paginationResponse: $it")
-                        span.tag("paginationResponse", it.toString())
-                    }
+                val totalCount = async { mongoOperations.count(Query(), BankAccountDocument::class.java).awaitSingle() }
+                val bankAccountDocuments = async { mongoOperations.find(Query().with(pageRequest), BankAccountDocument::class.java).collectList().awaitSingle() }
+                PaginationResponse.of(pageRequest, totalCount.await(), bankAccountDocuments.await())
             } finally {
                 span.end()
             }
