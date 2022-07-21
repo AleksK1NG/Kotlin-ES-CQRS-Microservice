@@ -2,6 +2,7 @@ package com.example.microservice.commands
 
 import com.example.microservice.domain.BankAccountAggregate
 import com.example.microservice.lib.es.AggregateStore
+import com.example.microservice.lib.es.EventSourcingUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
@@ -27,7 +28,7 @@ class BankAccountCommandServiceImpl(
 
             try {
                 val bankAccount = BankAccountAggregate(command.aggregateId)
-                bankAccount.createBankAccount(command)
+                bankAccount.createBankAccount(command, EventSourcingUtils.writeTraceSpanAsMetadata(span))
                 aggregateStore.save(bankAccount).run {
                     span.tag("bankAccount", bankAccount.toString())
                     log.info("(CreateBankAccountCommand) saved bankAccount: $bankAccount")
@@ -45,7 +46,7 @@ class BankAccountCommandServiceImpl(
 
             try {
                 val bankAccount = aggregateStore.load(command.aggregateId, BankAccountAggregate::class.java)
-                bankAccount.depositBalance(command)
+                bankAccount.depositBalance(command, EventSourcingUtils.writeTraceSpanAsMetadata(span))
                 aggregateStore.save(bankAccount).run {
                     span.tag("bankAccount", bankAccount.toString())
                     log.info("(DepositBalanceCommand) saved bankAccount: $bankAccount")
@@ -62,7 +63,7 @@ class BankAccountCommandServiceImpl(
 
             try {
                 val bankAccount = aggregateStore.load(command.aggregateId, BankAccountAggregate::class.java)
-                bankAccount.changeEmail(command)
+                bankAccount.changeEmail(command, EventSourcingUtils.writeTraceSpanAsMetadata(span))
                 aggregateStore.save(bankAccount).run {
                     span.tag("bankAccount", bankAccount.toString())
                     log.info("(ChangeEmailCommand) saved bankAccount: $bankAccount")

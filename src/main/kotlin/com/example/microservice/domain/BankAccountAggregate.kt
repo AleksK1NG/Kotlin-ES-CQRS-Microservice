@@ -38,32 +38,30 @@ class BankAccountAggregate(override val aggregateId: String) : AggregateRoot(agg
     }
 
 
-    fun createBankAccount(command: CreateBankAccountCommand) {
+    fun createBankAccount(command: CreateBankAccountCommand, metaData: ByteArray = byteArrayOf()) {
         if (command.balance < BigDecimal.ZERO) throw InvalidAmountException("invalid amount: ${command.balance}, aggregateId: ${command.aggregateId}")
-
-        this.apply(
+        apply(
             BankAccountCreatedEvent(
                 command.aggregateId,
                 command.email,
                 command.balance,
                 command.currency,
-                ByteArray(0)
+                metaData
             )
         )
     }
 
-    fun depositBalance(command: DepositBalanceCommand) {
+    fun depositBalance(command: DepositBalanceCommand, metaData: ByteArray = byteArrayOf()) {
         if (command.amount < BigDecimal.ZERO) throw InvalidAmountException("invalid amount: $command.amount, aggregateId: ${command.aggregateId}")
-        apply(BalanceDepositedEvent(this.aggregateId, command.amount, ByteArray(0)))
+        apply(BalanceDepositedEvent(aggregateId, command.amount, metaData))
     }
 
-    fun changeEmail(command: ChangeEmailCommand) {
+    fun changeEmail(command: ChangeEmailCommand, metaData: ByteArray = byteArrayOf()) {
         if (command.email.isEmpty()) throw InvalidEmailException("invalid email: ${command.email}, aggregateId: ${command.aggregateId}")
-        apply(EmailChangedEvent(aggregateId, command.email, ByteArray(0)))
+        apply(EmailChangedEvent(aggregateId, command.email, metaData))
     }
 
     companion object {
         const val type = "BankAccount"
     }
-
 }
