@@ -156,8 +156,7 @@ class AggregateStoreImpl(
                     log.info("(loadSnapshot) loaded snapshot: $it")
                     span.tag("snapshot", it.toString())
                 }
-        } catch (e: EmptyResultDataAccessException) {
-            span.error(e)
+        } catch (ex: EmptyResultDataAccessException) {
             log.info("(loadSnapshot) snapshot not found EmptyResultDataAccessException, creating default for id: $aggregateId")
             null
         } finally {
