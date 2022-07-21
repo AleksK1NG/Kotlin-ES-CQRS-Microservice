@@ -1,9 +1,9 @@
 Kotlin Spring Reactive EventSourcing and CQRS with PostgreSQL, Kafka, MongoDB, tracing and monitoring 👋✨💫
 
 #### 👨‍💻 Full list what has been used:
-[Spring Boot](https://spring.io/projects/spring-boot)
-[Spring WebFlux](https://docs.spring.io/spring-framework/docs/current/reference/html/web-reactive.html)
-[PostgeSQL with R2DBC](https://r2dbc.io/) The Reactive Relational Database Connectivity driver
+[Spring Boot](https://spring.io/projects/spring-boot)<br/>
+[Spring WebFlux](https://docs.spring.io/spring-framework/docs/current/reference/html/web-reactive.html)<br/>
+[PostgeSQL with R2DBC](https://r2dbc.io/) The Reactive Relational Database Connectivity driver<br/>
 [Spring Data MongoDB](https://spring.io/projects/spring-data-mongodb) Web and API based SMTP testing<br/>
 [Kafka](https://spring.io/projects/spring-kafka) as messages broker<br/>
 [Zipkin](https://zipkin.io/) open source, end-to-end distributed [tracing](https://opentracing.io/)<br/>
