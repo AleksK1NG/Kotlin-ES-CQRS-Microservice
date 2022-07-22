@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.support.WebExchangeBindException
+import org.springframework.web.server.ServerWebInputException
 import reactor.util.Loggers
 import java.time.LocalDateTime
 
@@ -49,7 +50,7 @@ class GlobalControllerAdvice {
             .also { log.error("(GlobalControllerAdvice) AggregateNotFountException NOT_FOUND", ex) }
     }
 
-    @ExceptionHandler(value = [SerializationException::class, InvalidEmailException::class, InvalidAmountException::class])
+    @ExceptionHandler(value = [SerializationException::class, InvalidEmailException::class, InvalidAmountException::class, ServerWebInputException::class])
     fun handleBadRequestException(ex: RuntimeException, request: ServerHttpRequest): ResponseEntity<ErrorHttpResponse> {
         val errorHttpResponse = ErrorHttpResponse(HttpStatus.BAD_REQUEST.value(), ex.message ?: "", LocalDateTime.now().toString())
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(errorHttpResponse)
