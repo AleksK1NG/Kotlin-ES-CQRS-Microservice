@@ -5,7 +5,6 @@ import com.example.microservice.commands.ChangeEmailCommand
 import com.example.microservice.commands.CreateBankAccountCommand
 import com.example.microservice.commands.DepositBalanceCommand
 import com.example.microservice.domain.BankAccountDocument
-import com.example.microservice.domain.Currency
 import com.example.microservice.dto.*
 import com.example.microservice.queries.BankAccountQueryService
 import com.example.microservice.queries.GetAllQuery
@@ -35,7 +34,7 @@ class BankAccountController(
 
     @PostMapping(path = ["/account"], consumes = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun createBankAccount(@Valid @RequestBody request: CreateBankAccountRequest) = coroutineScope {
-        val command = CreateBankAccountCommand(UUID.randomUUID().toString(), request.email, request.balance, Currency.valueOf(request.currency))
+        val command = CreateBankAccountCommand(UUID.randomUUID().toString(), request.email, request.balance, request.currency)
         bankAccountCommandService.handle(command)
         ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId).also { log.info("(createBankAccount) created id: $command.aggregateId") }
     }
