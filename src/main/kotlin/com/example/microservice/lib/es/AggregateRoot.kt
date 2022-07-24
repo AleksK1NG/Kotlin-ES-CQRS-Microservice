@@ -2,10 +2,7 @@ package com.example.microservice.lib.es
 
 import java.math.BigInteger
 
-abstract class AggregateRoot(
-    open val aggregateId: String,
-    open val aggregateType: String
-) {
+abstract class AggregateRoot(open val aggregateId: String, open val aggregateType: String) {
     val changes: MutableList<Any> = mutableListOf()
     var version: BigInteger = BigInteger.ZERO
 

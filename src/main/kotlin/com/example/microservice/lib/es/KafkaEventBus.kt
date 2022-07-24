@@ -21,12 +21,6 @@ class KafkaEventBus(
     private val tracer: Tracer
 ) : EventBus {
 
-    companion object {
-        private val log = LoggerFactory.getLogger(KafkaEventBus::class.java)
-        private const val sendTimeout: Long = 3000
-    }
-
-
     override suspend fun publish(events: Array<Event>) = withContext(Dispatchers.IO + tracer.asContextElement()) {
         val span = tracer.nextSpan(tracer.currentSpan()).start().name("KafkaEventBus.publish")
 
@@ -44,4 +38,10 @@ class KafkaEventBus(
             span.end()
         }
     }
+
+    companion object {
+        private val log = LoggerFactory.getLogger(KafkaEventBus::class.java)
+        private const val sendTimeout: Long = 3000
+    }
+
 }

@@ -17,10 +17,6 @@ class KafkaTopicConfiguration(
     private val bankAccountTopicName: String
 ) {
 
-    companion object {
-        private val log = Loggers.getLogger(KafkaTopicConfiguration::class.java)
-    }
-
     @Bean
     fun kafkaAdmin(): KafkaAdmin {
         val configs: MutableMap<String, Any> = HashMap()
@@ -31,15 +27,19 @@ class KafkaTopicConfiguration(
     @Bean
     fun bankAccountEventStoreTopicInitializer(kafkaAdmin: KafkaAdmin): NewTopic? {
         return try {
-            val topic = NewTopic(bankAccountTopicName, 3, 1.toShort())
+            val topic = NewTopic(bankAccountTopicName, partitionsCount, replicationFactor.toShort())
             kafkaAdmin.createOrModifyTopics(topic)
             log.info("(bankAccountEventStoreTopicInitializer) topic: $topic")
             topic
-        } catch (e: Exception) {
-            log.error("bankAccountEventStoreTopicInitializer", e)
+        } catch (ex: Exception) {
+            log.error("bankAccountEventStoreTopicInitializer", ex)
             null
         }
     }
 
-
+    companion object {
+        private val log = Loggers.getLogger(KafkaTopicConfiguration::class.java)
+        private const val partitionsCount = 3
+        private const val replicationFactor = 1
+    }
 }

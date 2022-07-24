@@ -24,10 +24,6 @@ import java.time.LocalDateTime
 @ControllerAdvice
 class GlobalControllerAdvice {
 
-    companion object {
-        private val log = Loggers.getLogger(GlobalControllerAdvice::class.java)
-    }
-
     @ExceptionHandler(value = [RuntimeException::class])
     fun handleRuntimeException(ex: RuntimeException, request: ServerHttpRequest): ResponseEntity<ErrorHttpResponse> {
         val errorHttpResponse = ErrorHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR.value(), ex.message ?: "", LocalDateTime.now().toString())
@@ -80,5 +76,9 @@ class GlobalControllerAdvice {
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).contentType(MediaType.APPLICATION_JSON).body(errorMap)
             .also { log.error("(GlobalControllerAdvice) WebExchangeBindException BAD_REQUEST", ex) }
+    }
+
+    companion object {
+        private val log = Loggers.getLogger(GlobalControllerAdvice::class.java)
     }
 }

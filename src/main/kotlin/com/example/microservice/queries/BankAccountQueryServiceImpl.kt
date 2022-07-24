@@ -21,9 +21,6 @@ class BankAccountQueryServiceImpl(
     private val mongoRepository: BankAccountCoroutineMongoRepository,
     private val tracer: Tracer
 ) : BankAccountQueryService {
-    companion object {
-        private val log = Loggers.getLogger(BankAccountQueryServiceImpl::class.java)
-    }
 
     override suspend fun handle(query: GetBankAccountByIdQuery): BankAccountResponse = coroutineScope {
         withContext(Dispatchers.IO + tracer.asContextElement()) {
@@ -31,15 +28,13 @@ class BankAccountQueryServiceImpl(
 
             try {
                 if (query.fromStore) {
-                    return@withContext aggregateStore.load(query.aggregateId, BankAccountAggregate::class.java)
-                        .let { BankAccountResponse.of(it) }
+                    return@withContext aggregateStore.load(query.aggregateId, BankAccountAggregate::class.java).let { BankAccountResponse.of(it) }
                         .also {
                             log.info("(GetBankAccountByIdQuery) fromStore bankAccountResponse: $it")
                             span.tag("BankAccountAggregate", it.toString())
                         }
                 }
-                return@withContext mongoRepository.findByAggregateId(query.aggregateId)
-                    .let { BankAccountResponse.of(it) }
+                return@withContext mongoRepository.findByAggregateId(query.aggregateId).let { BankAccountResponse.of(it) }
                     .also { log.info("(GetBankAccountByIdQuery) bankAccountDocument: $it") }
             } catch (ex: Exception) {
                 span.error(ex)
@@ -63,5 +58,9 @@ class BankAccountQueryServiceImpl(
         } finally {
             span.end()
         }
+    }
+
+    companion object {
+        private val log = Loggers.getLogger(BankAccountQueryServiceImpl::class.java)
     }
 }

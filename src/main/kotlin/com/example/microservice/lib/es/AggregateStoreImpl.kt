@@ -28,7 +28,6 @@ class AggregateStoreImpl(
     private val tracer: Tracer
 ) : AggregateStore {
 
-
     override suspend fun <T : AggregateRoot> load(aggregateId: String, aggregateType: Class<T>): T {
         val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.load")
 
@@ -48,7 +47,6 @@ class AggregateStoreImpl(
             span.end()
         }
     }
-
 
     override suspend fun <T : AggregateRoot> save(aggregate: T) {
         val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.save")
@@ -70,7 +68,6 @@ class AggregateStoreImpl(
                 log.info("(save) saved aggregate: $aggregate")
                 aggregate.clearChanges()
             }
-
         } finally {
             span.end()
         }
@@ -151,7 +148,8 @@ class AggregateStoreImpl(
         return try {
             dbClient.sql(LOAD_SNAPSHOT_QUERY)
                 .bind("aggregate_id", aggregateId)
-                .map { row, meta -> snapshotFromRow(row, meta) }.awaitOne()
+                .map { row, meta -> snapshotFromRow(row, meta) }
+                .awaitOne()
                 .also {
                     log.info("(loadSnapshot) loaded snapshot: $it")
                     span.tag("snapshot", it.toString())
@@ -194,23 +192,22 @@ class AggregateStoreImpl(
         }
     }
 
-    override suspend fun loadEvents(aggregateId: String, version: BigInteger): MutableList<Event> {
-        return withContext(Dispatchers.IO) {
-            val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.loadEvents")
-            span.tag("aggregateId", aggregateId).tag("version", version.toString())
+    override suspend fun loadEvents(aggregateId: String, version: BigInteger): MutableList<Event> = withContext(Dispatchers.IO) {
+        val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.loadEvents")
+        span.tag("aggregateId", aggregateId).tag("version", version.toString())
 
-            try {
-                dbClient.sql(LOAD_EVENTS_QUERY)
-                    .bind("aggregate_id", aggregateId)
-                    .bind("version", version)
-                    .map { row, meta -> eventFromRow(row, meta).also { log.info("(loadEvents) type: ${it.type}, version: ${it.version}") } }
-                    .all()
-                    .toIterable()
-            } finally {
-                span.end()
-            }
-        }.toMutableList()
-    }
+        try {
+            dbClient.sql(LOAD_EVENTS_QUERY)
+                .bind("aggregate_id", aggregateId)
+                .bind("version", version)
+                .map { row, meta -> eventFromRow(row, meta).also { log.info("(loadEvents) type: ${it.type}, version: ${it.version}") } }
+                .all()
+                .toIterable()
+        } finally {
+            span.end()
+        }
+    }.toMutableList()
+
 
     companion object {
         private val log = Loggers.getLogger(AggregateStoreImpl::class.java)
@@ -247,8 +244,8 @@ class AggregateStoreImpl(
                 id = UUID.randomUUID(),
                 aggregateId = row.get("aggregate_id", String::class.java) ?: "",
                 aggregateType = row.get("aggregate_type", String::class.java) ?: "",
-                data = row.get("data", ByteArray::class.java) ?: ByteArray(0),
-                metaData = row.get("metadata", ByteArray::class.java) ?: ByteArray(0),
+                data = row.get("data", ByteArray::class.java) ?: byteArrayOf(),
+                metaData = row.get("metadata", ByteArray::class.java) ?: byteArrayOf(),
                 version = row.get("version", BigInteger::class.java) ?: BigInteger.ZERO,
                 timeStamp = row.get("timestamp", LocalDateTime::class.java) ?: LocalDateTime.now(),
             )

@@ -3,8 +3,6 @@ package com.example.microservice.lib.es
 import java.math.BigInteger
 
 interface AggregateStore {
-
-
     suspend fun saveEvents(events: List<Event>)
 
     suspend fun loadEvents(aggregateId: String, version: BigInteger): MutableList<Event>
