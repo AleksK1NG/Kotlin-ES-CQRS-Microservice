@@ -43,21 +43,19 @@ class BankAccountEventSerializer : Serializer {
         }
     }
 
-    override fun deserialize(event: Event): Any {
-        return when (event.type) {
-            BankAccountEvents.BANK_ACCOUNT_CREATED_V1.name -> EventSourcingUtils.readValue(
-                event.data, BankAccountCreatedEvent::class.java
-            )
+    override fun deserialize(event: Event): Any = when (event.type) {
+        BankAccountEvents.BANK_ACCOUNT_CREATED_V1.name -> EventSourcingUtils.readValue(
+            event.data, BankAccountCreatedEvent::class.java
+        )
 
-            BankAccountEvents.BALANCE_DEPOSITED_V1.name -> EventSourcingUtils.readValue(
-                event.data, BalanceDepositedEvent::class.java
-            )
+        BankAccountEvents.BALANCE_DEPOSITED_V1.name -> EventSourcingUtils.readValue(
+            event.data, BalanceDepositedEvent::class.java
+        )
 
-            BankAccountEvents.EMAIL_CHANGED_V1.name -> EventSourcingUtils.readValue(
-                event.data, EmailChangedEvent::class.java
-            )
+        BankAccountEvents.EMAIL_CHANGED_V1.name -> EventSourcingUtils.readValue(
+            event.data, EmailChangedEvent::class.java
+        )
 
-            else -> throw UnknownEventTypeException("unknown event $event")
-        }
+        else -> throw UnknownEventTypeException("unknown event $event")
     }
 }

@@ -25,25 +25,25 @@ class MongoConfiguration(private val mongoTemplate: ReactiveMongoTemplate) {
         private val log = Loggers.getLogger(MongoConfiguration::class.java)
     }
 
-
     @PostConstruct
     private fun mongoInit() = runBlocking {
-        val bankAccountsCollection = mongoTemplate.getCollection("bankAccounts").awaitSingle()
-        val bankAccountsIndex = mongoTemplate.indexOps(BankAccountDocument::class.java).ensureIndex(Index("aggregateId", Sort.DEFAULT_DIRECTION).unique()).awaitSingle()
-        val bankAccountsIndexInfo = withContext(Dispatchers.IO) {
+        withContext(Dispatchers.IO) {
+            mongoTemplate.indexOps(BankAccountDocument::class.java)
+                .ensureIndex(Index("aggregateId", Sort.DEFAULT_DIRECTION).unique())
+                .awaitSingle()
             mongoTemplate.indexOps(BankAccountDocument::class.java).indexInfo.toIterable()
+                .also { log.info("MongoDB connected, bankAccounts aggregateId index created: $it") }
         }
-        log.info("MongoDB connected, bankAccounts aggregateId index created: $bankAccountsIndexInfo")
     }
 
 
     @Bean(name = ["mongoTransactionManager"])
-    fun transactionManager(rdbf: ReactiveMongoDatabaseFactory): ReactiveMongoTransactionManager {
-        return ReactiveMongoTransactionManager(rdbf)
+    fun transactionManager(reactiveMongoDatabaseFactory: ReactiveMongoDatabaseFactory): ReactiveMongoTransactionManager {
+        return ReactiveMongoTransactionManager(reactiveMongoDatabaseFactory)
     }
 
     @Bean(name = ["mongoTransactionOperator"])
-    fun transactionOperator(rtm: ReactiveTransactionManager): TransactionalOperator {
-        return TransactionalOperator.create(rtm)
+    fun transactionOperator(reactiveTransactionManager: ReactiveTransactionManager): TransactionalOperator {
+        return TransactionalOperator.create(reactiveTransactionManager)
     }
 }

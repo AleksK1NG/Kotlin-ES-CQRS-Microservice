@@ -28,7 +28,7 @@ class KafkaConsumerConfig(
         factory.consumerFactory = consumerFactory
         factory.setConcurrency(Runtime.getRuntime().availableProcessors())
         factory.containerProperties.ackMode = ContainerProperties.AckMode.MANUAL_IMMEDIATE
-        factory.setCommonErrorHandler(DefaultErrorHandler(FixedBackOff(1000L, 2L)))
+        factory.setCommonErrorHandler(DefaultErrorHandler(FixedBackOff(fixedBackOffInterval, maxAttempts)))
         return factory
     }
 
@@ -45,5 +45,10 @@ class KafkaConsumerConfig(
         consumerProps[ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG] = ByteArrayDeserializer::class.java
         consumerProps[ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG] = kafkaConfigProperties.enableAutoCommit
         return consumerProps
+    }
+
+    companion object {
+        private const val fixedBackOffInterval = 1000L
+        private const val maxAttempts = 5L
     }
 }

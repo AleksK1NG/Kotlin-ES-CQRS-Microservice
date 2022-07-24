@@ -10,7 +10,6 @@ import com.example.microservice.queries.BankAccountQueryService
 import com.example.microservice.queries.GetAllQuery
 import com.example.microservice.queries.GetBankAccountByIdQuery
 import io.swagger.v3.oas.annotations.tags.Tag
-import kotlinx.coroutines.coroutineScope
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -28,35 +27,32 @@ class BankAccountController(
     private val bankAccountCommandService: BankAccountCommandService,
     private val bankAccountQueryService: BankAccountQueryService,
 ) {
-    companion object {
-        private val log = Loggers.getLogger(BankAccountController::class.java)
-    }
 
     @PostMapping(path = ["/account"], consumes = [MediaType.APPLICATION_JSON_VALUE])
-    suspend fun createBankAccount(@Valid @RequestBody request: CreateBankAccountRequest) = coroutineScope {
+    suspend fun createBankAccount(@Valid @RequestBody request: CreateBankAccountRequest): ResponseEntity<String> {
         val command = CreateBankAccountCommand(UUID.randomUUID().toString(), request.email, request.balance, request.currency)
         bankAccountCommandService.handle(command)
-        ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId).also { log.info("(createBankAccount) created id: $command.aggregateId") }
+        return ResponseEntity.status(HttpStatus.CREATED).body(command.aggregateId).also { log.info("(createBankAccount) created id: $command.aggregateId") }
     }
 
     @PostMapping(path = ["/deposit/{id}"], consumes = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun depositBalance(
         @PathVariable(value = "id", required = true, name = "id") id: String,
         @Valid @RequestBody request: DepositBalanceRequest
-    ) = coroutineScope {
+    ): ResponseEntity.BodyBuilder {
         val command = DepositBalanceCommand(id, request.amount)
         bankAccountCommandService.handle(command)
-        ResponseEntity.ok().also { log.info("(depositBalance) deposited id: $command.aggregateId, amount: $command.amount") }
+        return ResponseEntity.ok().also { log.info("(depositBalance) deposited id: $command.aggregateId, amount: $command.amount") }
     }
 
     @PostMapping(path = ["/email/{id}"], consumes = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun changeEmail(
         @PathVariable(value = "id", required = true, name = "id") id: String,
         @Valid @RequestBody request: ChangeEmailRequest
-    ) = coroutineScope {
+    ): ResponseEntity.BodyBuilder {
         val command = ChangeEmailCommand(id, request.email)
         bankAccountCommandService.handle(command)
-        ResponseEntity.ok().also { log.info("(changeEmail) email changed id: $command.aggregateId, email: $command.email") }
+        return ResponseEntity.ok().also { log.info("(changeEmail) email changed id: $command.aggregateId, email: $command.email") }
     }
 
 
@@ -64,8 +60,8 @@ class BankAccountController(
     suspend fun getBankAccountById(
         @PathVariable(value = "id", required = true, name = "id") id: String,
         @RequestParam(name = "store", required = false, defaultValue = "false") fromStore: Boolean
-    ): ResponseEntity<BankAccountResponse> = coroutineScope {
-        bankAccountQueryService.handle(GetBankAccountByIdQuery(id, fromStore))
+    ): ResponseEntity<BankAccountResponse> {
+        return bankAccountQueryService.handle(GetBankAccountByIdQuery(id, fromStore))
             .let { ResponseEntity.ok(it) }.also { log.info("(getBankAccountById) account loaded id: $id") }
     }
 
@@ -73,8 +69,12 @@ class BankAccountController(
     suspend fun getAllWithPagination(
         @RequestParam(name = "page", required = false, defaultValue = "0") page: Int,
         @RequestParam(name = "size", required = false, defaultValue = "10") size: Int
-    ): ResponseEntity<PaginationResponse<BankAccountDocument>> = coroutineScope {
-        bankAccountQueryService.handle(GetAllQuery(PageRequest.of(page, size)))
+    ): ResponseEntity<PaginationResponse<BankAccountDocument>> {
+        return bankAccountQueryService.handle(GetAllQuery(PageRequest.of(page, size)))
             .let { ResponseEntity.ok(it) }.also { log.info("(getAllWithPagination) accounts: ${it.body}") }
+    }
+
+    companion object {
+        private val log = Loggers.getLogger(BankAccountController::class.java)
     }
 }

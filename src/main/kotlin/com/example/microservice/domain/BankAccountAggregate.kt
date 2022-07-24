@@ -40,15 +40,7 @@ class BankAccountAggregate(override val aggregateId: String) : AggregateRoot(agg
 
     fun createBankAccount(command: CreateBankAccountCommand, metaData: ByteArray = byteArrayOf()) {
         if (command.balance < BigDecimal.ZERO) throw InvalidAmountException("invalid amount: ${command.balance}, aggregateId: ${command.aggregateId}")
-        apply(
-            BankAccountCreatedEvent(
-                command.aggregateId,
-                command.email,
-                command.balance,
-                command.currency,
-                metaData
-            )
-        )
+        apply(BankAccountCreatedEvent(command.aggregateId, command.email, command.balance, command.currency, metaData))
     }
 
     fun depositBalance(command: DepositBalanceCommand, metaData: ByteArray = byteArrayOf()) {
