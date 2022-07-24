@@ -1,6 +1,5 @@
 package com.example.microservice.lib.es
 
-import com.example.microservice.events.es.exceptions.AggregateNotFountException
 import com.example.microservice.lib.es.EventSourcingConstants.AGGREGATE_ID
 import com.example.microservice.lib.es.EventSourcingConstants.AGGREGATE_TYPE
 import com.example.microservice.lib.es.EventSourcingConstants.DATA
@@ -8,6 +7,7 @@ import com.example.microservice.lib.es.EventSourcingConstants.EVENT_TYPE
 import com.example.microservice.lib.es.EventSourcingConstants.METADATA
 import com.example.microservice.lib.es.EventSourcingConstants.TIMESTAMP
 import com.example.microservice.lib.es.EventSourcingConstants.VERSION
+import com.example.microservice.lib.es.exceptions.AggregateNotFountException
 import io.r2dbc.spi.Row
 import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.Dispatchers

@@ -1,4 +1,4 @@
-package com.example.microservice.events.es.exceptions
+package com.example.microservice.lib.es.exceptions
 
 class AggregateNotFountException : RuntimeException {
     constructor(message: String?) : super(message)

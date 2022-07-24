@@ -1,6 +1,6 @@
 package com.example.microservice.controllers
 
-import com.example.microservice.events.es.exceptions.AggregateNotFountException
+import com.example.microservice.lib.es.exceptions.AggregateNotFountException
 import com.example.microservice.exceptions.ErrorHttpResponse
 import com.example.microservice.exceptions.InvalidAmountException
 import com.example.microservice.exceptions.InvalidEmailException

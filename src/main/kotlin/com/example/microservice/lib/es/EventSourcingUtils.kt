@@ -28,22 +28,6 @@ object EventSourcingUtils {
                 .build()
         )
 
-//    init {
-//        mapper.registerModule(ParameterNamesModule())
-//        mapper.registerModule(Jdk8Module())
-//        mapper.registerModule(JavaTimeModule())
-//        mapper.registerModule(
-//            KotlinModule.Builder()
-//                .withReflectionCacheSize(512)
-//                .configure(KotlinFeature.NullToEmptyCollection, false)
-//                .configure(KotlinFeature.NullToEmptyMap, false)
-//                .configure(KotlinFeature.NullIsSameAsDefault, false)
-//                .configure(KotlinFeature.SingletonSupport, false)
-//                .configure(KotlinFeature.StrictNullChecks, false)
-//                .build()
-//        )
-//    }
-
 
     fun writeValueAsBytes(value: Any): ByteArray {
         try {

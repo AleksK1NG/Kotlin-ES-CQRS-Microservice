@@ -7,7 +7,7 @@ import java.util.*
 class Event(val type: String, var data: ByteArray, var aggregateId: String, var aggregateType: String) {
     var id: String? = null
     var version: BigInteger = BigInteger.ZERO
-    var metaData: ByteArray = ByteArray(0)
+    var metaData: ByteArray = byteArrayOf()
     var timeStamp: LocalDateTime = LocalDateTime.now()
 
     constructor(aggregate: AggregateRoot, eventType: String, data: ByteArray, metaData: ByteArray) : this(
