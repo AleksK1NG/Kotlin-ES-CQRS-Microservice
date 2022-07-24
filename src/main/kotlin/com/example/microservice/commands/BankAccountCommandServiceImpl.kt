@@ -27,10 +27,9 @@ class BankAccountCommandServiceImpl(
         try {
             val bankAccount = BankAccountAggregate(command.aggregateId)
             bankAccount.createBankAccount(command, EventSourcingUtils.writeTraceSpanAsMetadata(span))
-            aggregateStore.save(bankAccount).also {
-                span.tag("bankAccount", bankAccount.toString())
-                log.info("(CreateBankAccountCommand) saved bankAccount: $bankAccount")
-            }
+            aggregateStore.save(bankAccount)
+                .also { span.tag("bankAccount", bankAccount.toString()) }
+                .also { log.info("(CreateBankAccountCommand) saved bankAccount: $bankAccount") }
         } finally {
             span.end()
         }
@@ -44,10 +43,9 @@ class BankAccountCommandServiceImpl(
         try {
             val bankAccount = aggregateStore.load(command.aggregateId, BankAccountAggregate::class.java)
             bankAccount.depositBalance(command, EventSourcingUtils.writeTraceSpanAsMetadata(span))
-            aggregateStore.save(bankAccount).also {
-                span.tag("bankAccount", bankAccount.toString())
-                log.info("(DepositBalanceCommand) saved bankAccount: $bankAccount")
-            }
+            aggregateStore.save(bankAccount)
+                .also { span.tag("bankAccount", bankAccount.toString()) }
+                .also { log.info("(DepositBalanceCommand) saved bankAccount: $bankAccount") }
         } finally {
             span.end()
         }
@@ -60,10 +58,9 @@ class BankAccountCommandServiceImpl(
         try {
             val bankAccount = aggregateStore.load(command.aggregateId, BankAccountAggregate::class.java)
             bankAccount.changeEmail(command, EventSourcingUtils.writeTraceSpanAsMetadata(span))
-            aggregateStore.save(bankAccount).also {
-                span.tag("bankAccount", bankAccount.toString())
-                log.info("(ChangeEmailCommand) saved bankAccount: $bankAccount")
-            }
+            aggregateStore.save(bankAccount)
+                .also { span.tag("bankAccount", bankAccount.toString()) }
+                .also { log.info("(ChangeEmailCommand) saved bankAccount: $bankAccount") }
         } finally {
             span.end()
         }

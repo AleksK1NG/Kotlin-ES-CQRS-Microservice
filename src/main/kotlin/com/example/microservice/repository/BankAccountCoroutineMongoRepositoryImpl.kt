@@ -31,20 +31,13 @@ class BankAccountCoroutineMongoRepositoryImpl(
     private val mongoOperations: ReactiveMongoOperations
 ) : BankAccountCoroutineMongoRepository {
 
-    companion object {
-        private val log = Loggers.getLogger(MongoRepository::class.java)
-        private fun getByAggregateIdQuery(aggregateId: String?) = Query.query(Criteria.where("aggregateId").`is`(aggregateId))
-    }
-
     override suspend fun insert(bankAccountDocument: BankAccountDocument): BankAccountDocument = withContext(tracer.asContextElement()) {
         val span = tracer.nextSpan(tracer.currentSpan()).start().name("MongoRepository.insert")
 
         try {
             return@withContext mongoTemplate.insert(bankAccountDocument).awaitSingle()
-                .also {
-                    span.tag("savedBankAccountDocument", bankAccountDocument.toString())
-                    log.info("saved savedBankAccountDocument: $it")
-                }
+                .also { span.tag("savedBankAccountDocument", bankAccountDocument.toString()) }
+                .also { log.info("saved savedBankAccountDocument: $it") }
         } finally {
             span.end()
         }
@@ -56,10 +49,8 @@ class BankAccountCoroutineMongoRepositoryImpl(
 
         try {
             mongoOperations.save(bankAccountDocument).awaitSingle()
-                .also {
-                    span.tag("savedBankAccountDocument", it.toString())
-                    log.info("savedBankAccountDocument: $it")
-                }
+                .also { span.tag("savedBankAccountDocument", it.toString()) }
+                .also { log.info("savedBankAccountDocument: $it") }
         } finally {
             span.end()
         }
@@ -74,10 +65,8 @@ class BankAccountCoroutineMongoRepositoryImpl(
                 bankAccountDocument.id = foundDocument.id
 
                 mongoOperations.save(bankAccountDocument).awaitSingle()
-                    .also {
-                        span.tag("savedBankAccountDocument", it.toString())
-                        log.info("savedBankAccountDocument: $it")
-                    }
+                    .also { span.tag("savedBankAccountDocument", it.toString()) }
+                    .also { log.info("savedBankAccountDocument: $it") }
             }
         } finally {
             span.end()
@@ -91,10 +80,8 @@ class BankAccountCoroutineMongoRepositoryImpl(
         try {
             val query = Query.query(Criteria.where("aggregateId").`is`(aggregateId))
             mongoOperations.remove(query).awaitSingle()
-                .also {
-                    span.tag("deleteResult", it.toString())
-                    log.info("deleteResult: $it")
-                }
+                .also { span.tag("deleteResult", it.toString()) }
+                .also { log.info("deleteResult: $it") }
         } finally {
             span.end()
         }
@@ -106,10 +93,8 @@ class BankAccountCoroutineMongoRepositoryImpl(
         try {
             val query = Query.query(Criteria.where("aggregateId").`is`(aggregateId))
             mongoOperations.findOne(query, BankAccountDocument::class.java).awaitSingle()
-                .also {
-                    span.tag("bankAccountDocument", it.toString())
-                    log.info("bankAccountDocument: $it")
-                }
+                .also { span.tag("bankAccountDocument", it.toString()) }
+                .also { log.info("bankAccountDocument: $it") }
         } finally {
             span.end()
         }
@@ -131,5 +116,10 @@ class BankAccountCoroutineMongoRepositoryImpl(
                 span.end()
             }
         }
+    }
+
+    companion object {
+        private val log = Loggers.getLogger(MongoRepository::class.java)
+        private fun getByAggregateIdQuery(aggregateId: String?) = Query.query(Criteria.where("aggregateId").`is`(aggregateId))
     }
 }

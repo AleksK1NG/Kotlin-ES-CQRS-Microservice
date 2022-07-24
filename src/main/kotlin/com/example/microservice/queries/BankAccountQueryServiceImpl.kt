@@ -29,12 +29,11 @@ class BankAccountQueryServiceImpl(
             try {
                 if (query.fromStore) {
                     return@withContext aggregateStore.load(query.aggregateId, BankAccountAggregate::class.java).let { BankAccountResponse.of(it) }
-                        .also {
-                            log.info("(GetBankAccountByIdQuery) fromStore bankAccountResponse: $it")
-                            span.tag("BankAccountAggregate", it.toString())
-                        }
+                        .also { log.info("(GetBankAccountByIdQuery) fromStore bankAccountResponse: $it") }
+                        .also { span.tag("BankAccountAggregate", it.toString()) }
                 }
-                return@withContext mongoRepository.findByAggregateId(query.aggregateId).let { BankAccountResponse.of(it) }
+                return@withContext mongoRepository.findByAggregateId(query.aggregateId)
+                    .let { BankAccountResponse.of(it) }
                     .also { log.info("(GetBankAccountByIdQuery) bankAccountDocument: $it") }
             } catch (ex: Exception) {
                 span.error(ex)
@@ -51,10 +50,9 @@ class BankAccountQueryServiceImpl(
         val span = tracer.nextSpan(tracer.currentSpan()).start().name("GetAllQuery.handle")
 
         try {
-            mongoRepository.findAll(query.pageRequest).also {
-                log.info("(GetAllQuery) bankAccountDocuments: $it")
-                span.tag("bankAccountDocuments", it.toString())
-            }
+            mongoRepository.findAll(query.pageRequest)
+                .also { log.info("(GetAllQuery) bankAccountDocuments: $it") }
+                .also { span.tag("bankAccountDocuments", it.toString()) }
         } finally {
             span.end()
         }

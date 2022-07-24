@@ -60,8 +60,8 @@ class AggregateStoreImpl(
 
         try {
             val events = aggregate.changes.map { serializer.serialize(it, aggregate) }
-            log.info("(save) serialized events: $events")
-            span.tag("events", events.toString())
+                .also { log.info("(save) serialized events: $it") }
+                .also { span.tag("events", it.toString()) }
 
             operator.executeAndAwait {
                 if (aggregate.version > BigInteger.ONE) handleConcurrency(aggregate.aggregateId)
@@ -119,10 +119,8 @@ class AggregateStoreImpl(
 
         try {
             return aggregateType.getConstructor(String::class.java).newInstance(aggregateId)
-                .also {
-                    span.tag("newInstance", it.toString())
-                    log.info("(getAggregate) newInstance: $it")
-                }
+                .also { span.tag("newInstance", it.toString()) }
+                .also { log.info("(getAggregate) newInstance: $it") }
         } catch (ex: Exception) {
             span.error(ex)
             log.error("create default aggregate ex:", ex)
@@ -157,10 +155,8 @@ class AggregateStoreImpl(
                 .bind(AGGREGATE_ID, aggregateId)
                 .map { row, meta -> snapshotFromRow(row, meta) }
                 .awaitOne()
-                .also {
-                    log.info("(loadSnapshot) loaded snapshot: $it")
-                    span.tag("snapshot", it.toString())
-                }
+                .also { log.info("(loadSnapshot) loaded snapshot: $it") }
+                .also { span.tag("snapshot", it.toString()) }
         } catch (ex: EmptyResultDataAccessException) {
             log.info("(loadSnapshot) snapshot not found EmptyResultDataAccessException, creating default for id: $aggregateId")
             null

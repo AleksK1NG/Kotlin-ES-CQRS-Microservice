@@ -71,10 +71,9 @@ class BankAccountMongoSubscription(
 
                 try {
                     flowOf(*deserializedEvents).flowOn(Dispatchers.IO).collectIndexed { _, value -> mongoProjection.whenEvent(value) }
-                    ack.acknowledge().also {
-                        span.tag("deserializedEvents", deserializedEvents.map { it.aggregateId }.toString())
-                        log.info("Subscription <<<commit>>> events: ${deserializedEvents.map { it.aggregateId }}")
-                    }
+                    ack.acknowledge()
+                        .also { span.tag("deserializedEvents", deserializedEvents.map { it.aggregateId }.toString()) }
+                        .also { log.info("Subscription <<<commit>>> events: ${deserializedEvents.map { it.aggregateId }}") }
                 } catch (ex: Exception) {
                     span.error(ex)
                     log.error("Subscription handleMessage error, starting recreate projection for id: ${deserializedEvents[0].aggregateId}", ex)
@@ -83,10 +82,9 @@ class BankAccountMongoSubscription(
 
                     aggregateStore.load(deserializedEvents[0].aggregateId, BankAccountAggregate::class.java)
                         .let { mongoRepository.insert(BankAccountDocument.of(it)) }.also {
-                            ack.acknowledge().also {
-                                span.tag("savedBankAccountDocument", it.toString())
-                                log.info("Subscription recreated savedBankAccountDocument <<<commit>>>: $it")
-                            }
+                            ack.acknowledge()
+                                .also { span.tag("savedBankAccountDocument", it.toString()) }
+                                .also { log.info("Subscription recreated savedBankAccountDocument <<<commit>>>: $it") }
                         }
                 } finally {
                     span.end()

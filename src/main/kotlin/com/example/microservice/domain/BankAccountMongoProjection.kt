@@ -22,10 +22,6 @@ class BankAccountMongoProjection(
     private val serializer: Serializer,
     private val tracer: Tracer
 ) : Projection {
-    companion object {
-        val log = Loggers.getLogger(BankAccountMongoProjection::class.java)
-        private const val handleEventTimeout = 5000L
-    }
 
     override suspend fun whenEvent(event: Event): Unit = withContext(tracer.asContextElement()) {
         withTimeout(handleEventTimeout) {
@@ -37,28 +33,25 @@ class BankAccountMongoProjection(
                 when (val deserializedEvent = serializer.deserialize(event)) {
                     is BankAccountCreatedEvent -> {
                         val bankAccountDocument = BankAccountDocument(event.aggregateId, deserializedEvent.email, deserializedEvent.balance, deserializedEvent.currency)
-                        mongoRepository.insert(bankAccountDocument).also {
-                            span.tag("savedDocument", it.toString())
-                            log.info("(BankAccountMongoProjection) BankAccountCreatedEvent savedDocument: $it")
-                        }
+                        mongoRepository.insert(bankAccountDocument)
+                            .also { span.tag("savedDocument", it.toString()) }
+                            .also { log.info("(BankAccountMongoProjection) BankAccountCreatedEvent savedDocument: $it") }
                     }
 
                     is BalanceDepositedEvent -> {
                         val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId)
                         bankAccountDocument.balance = bankAccountDocument.balance?.add(deserializedEvent.balance)
-                        mongoRepository.updateByAggregateId(bankAccountDocument).also {
-                            span.tag("savedDocument", it.toString())
-                            log.info("(BankAccountMongoProjection) BalanceDepositedEvent savedDocument: $it")
-                        }
+                        mongoRepository.updateByAggregateId(bankAccountDocument)
+                            .also { span.tag("savedDocument", it.toString()) }
+                            .also { log.info("(BankAccountMongoProjection) BalanceDepositedEvent savedDocument: $it") }
                     }
 
                     is EmailChangedEvent -> {
                         val bankAccountDocument = mongoRepository.findByAggregateId(event.aggregateId)
                         bankAccountDocument.email = deserializedEvent.email
-                        mongoRepository.updateByAggregateId(bankAccountDocument).also {
-                            span.tag("savedDocument", it.toString())
-                            log.info("(BankAccountMongoProjection) EmailChangedEvent savedDocument: $it")
-                        }
+                        mongoRepository.updateByAggregateId(bankAccountDocument)
+                            .also { span.tag("savedDocument", it.toString()) }
+                            .also { log.info("(BankAccountMongoProjection) EmailChangedEvent savedDocument: $it") }
                     }
 
                     else -> throw UnknownEventTypeException("unknown event: $deserializedEvent")
@@ -67,5 +60,10 @@ class BankAccountMongoProjection(
                 span.end()
             }
         }
+    }
+
+    companion object {
+        val log = Loggers.getLogger(BankAccountMongoProjection::class.java)
+        private const val handleEventTimeout = 5000L
     }
 }
