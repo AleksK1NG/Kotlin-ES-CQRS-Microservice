@@ -1,6 +1,13 @@
 package com.example.microservice.lib.es
 
 import com.example.microservice.events.es.exceptions.AggregateNotFountException
+import com.example.microservice.lib.es.EventSourcingConstants.AGGREGATE_ID
+import com.example.microservice.lib.es.EventSourcingConstants.AGGREGATE_TYPE
+import com.example.microservice.lib.es.EventSourcingConstants.DATA
+import com.example.microservice.lib.es.EventSourcingConstants.EVENT_TYPE
+import com.example.microservice.lib.es.EventSourcingConstants.METADATA
+import com.example.microservice.lib.es.EventSourcingConstants.TIMESTAMP
+import com.example.microservice.lib.es.EventSourcingConstants.VERSION
 import io.r2dbc.spi.Row
 import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.Dispatchers
@@ -81,11 +88,11 @@ class AggregateStoreImpl(
             val snapshot = EventSourcingUtils.snapshotFromAggregate(aggregate)
 
             dbClient.sql(SAVE_SNAPSHOT_QUERY)
-                .bind("aggregate_id", aggregate.aggregateId)
-                .bind("aggregate_type", aggregate.aggregateType)
-                .bind("data", snapshot.data)
-                .bind("metadata", snapshot.metaData)
-                .bind("version", aggregate.version)
+                .bind(AGGREGATE_ID, aggregate.aggregateId)
+                .bind(AGGREGATE_TYPE, aggregate.aggregateType)
+                .bind(DATA, snapshot.data)
+                .bind(METADATA, snapshot.metaData)
+                .bind(VERSION, aggregate.version)
                 .await()
 
             log.info("(save) saved snapshot: $snapshot, version: ${aggregate.version}")
@@ -99,7 +106,7 @@ class AggregateStoreImpl(
         val span = tracer.nextSpan(tracer.currentSpan()).start().name("AggregateStore.handleConcurrency")
 
         try {
-            dbClient.sql(HANDLE_CONCURRENCY_QUERY).bind("aggregate_id", aggregateId).await()
+            dbClient.sql(HANDLE_CONCURRENCY_QUERY).bind(AGGREGATE_ID, aggregateId).await()
                 .also { log.info("(save) handleConcurrency aggregateId: $aggregateId") }
         } finally {
             span.end()
@@ -147,7 +154,7 @@ class AggregateStoreImpl(
 
         return try {
             dbClient.sql(LOAD_SNAPSHOT_QUERY)
-                .bind("aggregate_id", aggregateId)
+                .bind(AGGREGATE_ID, aggregateId)
                 .map { row, meta -> snapshotFromRow(row, meta) }
                 .awaitOne()
                 .also {
@@ -180,12 +187,12 @@ class AggregateStoreImpl(
             log.info("saving event: $event")
             span.tag("event", event.toString())
             return dbClient.sql(SAVE_EVENTS_QUERY)
-                .bind("aggregate_id", event.aggregateId)
-                .bind("aggregate_type", event.aggregateType)
-                .bind("event_type", event.type)
-                .bind("version", event.version)
-                .bind("data", event.data)
-                .bind("metadata", event.metaData)
+                .bind(AGGREGATE_ID, event.aggregateId)
+                .bind(AGGREGATE_TYPE, event.aggregateType)
+                .bind(EVENT_TYPE, event.type)
+                .bind(VERSION, event.version)
+                .bind(DATA, event.data)
+                .bind(METADATA, event.metaData)
                 .await()
         } finally {
             span.end()
@@ -198,8 +205,8 @@ class AggregateStoreImpl(
 
         try {
             dbClient.sql(LOAD_EVENTS_QUERY)
-                .bind("aggregate_id", aggregateId)
-                .bind("version", version)
+                .bind(AGGREGATE_ID, aggregateId)
+                .bind(VERSION, version)
                 .map { row, meta -> eventFromRow(row, meta).also { log.info("(loadEvents) type: ${it.type}, version: ${it.version}") } }
                 .all()
                 .toIterable()
@@ -228,26 +235,26 @@ class AggregateStoreImpl(
 
         private fun eventFromRow(row: Row, meta: RowMetadata): Event {
             return Event(
-                type = row.get("event_type", String::class.java) ?: "",
-                aggregateType = row.get("aggregate_type", String::class.java) ?: "",
+                type = row.get(EVENT_TYPE, String::class.java) ?: "",
+                aggregateType = row.get(AGGREGATE_TYPE, String::class.java) ?: "",
                 id = "",
-                version = row.get("version", BigInteger::class.java) ?: BigInteger.ZERO,
-                aggregateId = row.get("aggregate_id", String::class.java) ?: "",
-                data = row.get("data", ByteArray::class.java) ?: byteArrayOf(),
-                metaData = row.get("metadata", ByteArray::class.java) ?: byteArrayOf(),
-                timeStamp = row.get("timestamp", LocalDateTime::class.java) ?: LocalDateTime.now(),
+                version = row.get(VERSION, BigInteger::class.java) ?: BigInteger.ZERO,
+                aggregateId = row.get(AGGREGATE_ID, String::class.java) ?: "",
+                data = row.get(DATA, ByteArray::class.java) ?: byteArrayOf(),
+                metaData = row.get(METADATA, ByteArray::class.java) ?: byteArrayOf(),
+                timeStamp = row.get(TIMESTAMP, LocalDateTime::class.java) ?: LocalDateTime.now(),
             )
         }
 
         private fun snapshotFromRow(row: Row, meta: RowMetadata): Snapshot {
             return Snapshot(
                 id = UUID.randomUUID(),
-                aggregateId = row.get("aggregate_id", String::class.java) ?: "",
-                aggregateType = row.get("aggregate_type", String::class.java) ?: "",
-                data = row.get("data", ByteArray::class.java) ?: byteArrayOf(),
-                metaData = row.get("metadata", ByteArray::class.java) ?: byteArrayOf(),
-                version = row.get("version", BigInteger::class.java) ?: BigInteger.ZERO,
-                timeStamp = row.get("timestamp", LocalDateTime::class.java) ?: LocalDateTime.now(),
+                aggregateId = row.get(AGGREGATE_ID, String::class.java) ?: "",
+                aggregateType = row.get(AGGREGATE_TYPE, String::class.java) ?: "",
+                data = row.get(DATA, ByteArray::class.java) ?: byteArrayOf(),
+                metaData = row.get(METADATA, ByteArray::class.java) ?: byteArrayOf(),
+                version = row.get(VERSION, BigInteger::class.java) ?: BigInteger.ZERO,
+                timeStamp = row.get(TIMESTAMP, LocalDateTime::class.java) ?: LocalDateTime.now(),
             )
         }
     }
